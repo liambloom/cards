@@ -1,7 +1,10 @@
+import { TokenArea } from "./display";
+
 export abstract class Token {
     private parts: Map<string, TokenPart> = undefined as unknown as Map<string, TokenPart>;
 
-    constructor() {
+    constructor(parts: Map<string, TokenPart>) {
+        this.parts = parts
     }
 
     getPart(name: string): TokenPart {
@@ -13,20 +16,36 @@ export abstract class Token {
 
         return r;
     }
-
-    initTokenData(parts: Map<string, TokenPart>) {
-        this.parts = parts
-    }
 }
 
 
 export class TokenPart {
-    visibility: Todo;
+    private visibleTo: Set<Player> = new Set();
 
     properties: Map<TokenProperty, TokenPropertyValue>;
 
     constructor(properties: Map<TokenProperty, TokenPropertyValue>) {
         this.properties = properties;
+    }
+
+    revealTo(...players: Player[]) {
+        for (let player of players) {
+            this.visibleTo.add(player);
+        }
+    }
+
+    hideFrom(...players: Player[]) {
+        for (let player of players) {
+            this.visibleTo.delete(player);
+        }
+    }
+
+    isVisibleTo(player: Player): boolean {
+        return this.visibleTo.has(player);
+    }
+
+    visibleToWho(): ReadonlySet<Player> {
+        return new Set(this.visibleTo)
     }
 }
 
@@ -57,7 +76,7 @@ export class TokenPropertyValue {
     }
 }
 
-export class TokenGroup<T> {
+export abstract class TokenGroup<T> {
     tokens: T[];
 
     constructor(tokens: T[]) {
@@ -65,19 +84,12 @@ export class TokenGroup<T> {
     }
 }
 
-export function combinationTokenGroup<T extends Token>(tokenFactory: () => T, parts: Map<string, ClosedTokenProperty[]>): TokenGroup<T> {
+export function combinationTokenParts(parts: Map<string, ClosedTokenProperty[]>): Map<string, TokenPart>[] {
     const combinationParts: Map<string, TokenPart[]> = new Map();
     for (let [name, properties] of parts.entries()) {
         combinationParts.set(name, combinationUtil(new Map(), new Map(properties.map(prop => [prop, prop.values]))).map(props => new TokenPart(props)));
     }
-    const tokens: T[] = combinationUtil(new Map(), combinationParts)
-        .map(tokenParts => {
-            const token: T = tokenFactory();
-            token.initTokenData(tokenParts);
-            return token;
-        });
-
-    return new TokenGroup(tokens);
+    return combinationUtil(new Map(), combinationParts)
 }
 
 function combinationUtil<T, U>(done: Map<T, U>, remaining: Map<T, U[]>): Map<T, U>[] {
@@ -101,3 +113,5 @@ function combinationUtil<T, U>(done: Map<T, U>, remaining: Map<T, U[]>): Map<T, 
 }
 
 type Todo = any;
+
+type Player = Todo;
