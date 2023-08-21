@@ -108,8 +108,18 @@ export class CardPile implements Skinnable {
         public cardSpacing: number = 0, 
         public cardAngle: number = 0,
     ) {
-        for (let i of cards.keys()) {
-            [cards[i].x, cards[i].y] = this.cardPosition(i);
+        for (let card of cards) {
+            this.register(card);
+        }
+    }
+
+    public register(card: Card) {
+        card.position.setPosition(() => this.cardPosition(this.cards.indexOf(card)))
+    }
+
+    private updateCards(start: number, end: number) {
+        for (let i = start; i < end; i++) {
+            this.cards[i].position.update()
         }
     }
 
@@ -119,6 +129,8 @@ export class CardPile implements Skinnable {
             const j = Math.floor(Math.random() * (i + 1));
             [this.cards[i], this.cards[j]] = [this.cards[j], this.cards[i]];
         }
+
+        this.updateCards(0, this.cards.length);
     }
 
     public draw(skin: Skin) {
@@ -130,7 +142,7 @@ export class CardPile implements Skinnable {
     // This is public so cardpilecombiner can put the bottom card of a pile on top
     //  of this one in the place that the next card would be.
     public cardPosition(index: number): [number, number] {
-
+        return [this.cardSpacing * index * Math.cos(this.cardAngle), this.cardSpacing * index * Math.sin(this.cardAngle)];
     }
 }
 
