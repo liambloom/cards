@@ -1,25 +1,43 @@
-import { Token, TokenGroup } from "./token";
+import { Card } from "../common/cards";
 
-export class Table {
+export type Skin = (card: Card) => void;
 
+export interface Skinnable {
+    draw(skin: Skin): void;
 }
 
-export interface TokenArea {
-    visibleTo: 
+export class Position {
+    private xCalc!: () => number;
+    private yCalc!: () => number;
 
-}
+    public constructor(x: number | (() => number) = 0, y: number | (() => number) = 0) {
+        this.x = x;
+        this.y = y;
+    }
 
-export class TableArea implements TokenArea {
+    public get x() {
+        return this.xCalc();
+    }
 
-}
+    public get y() {
+        return this.yCalc();
+    }
 
-export class Hand implements TokenArea {
+    public set x(value: number | (() => number)) {
+        if (typeof value === "number") {
+            this.xCalc = () => value;
+        }
+        else {
+            this.xCalc = value;
+        }
+    }
 
-}
-
-export interface Renderer<T extends Token, U extends TokenGroup<T>> {
-    renderTable(table: Table): void;
-    renderHand(hand: Hand): void;
-    renderToken(area: TokenArea, token: T): void;
-    renderTokenGroup(area: TokenArea, group: U): void;
+    public set y(value: number | (() => number)) {
+        if (typeof value === "number") {
+            this.yCalc = () => value;
+        }
+        else {
+            this.yCalc = value;
+        }
+    }
 }
