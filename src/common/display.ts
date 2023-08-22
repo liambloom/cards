@@ -11,13 +11,21 @@ type UpdateListener = (oldValue: [number, number], newValue: [number, number]) =
 export class Position {
     private xVal: number | undefined;
     private yVal: number | undefined;    
-    private xCalc!: () => number;
-    private yCalc!: () => number;
+    private xCalc: () => number = () => 0;
+    private yCalc: () => number = () => 0;
     private updateListeners: UpdateListener[] = [];
 
-    public constructor(x: number | (() => number) = 0, y: number | (() => number) = 0) {
-        this.x = x;
-        this.y = y;
+    public constructor();
+    public constructor(x: number | (() => number), y: number | (() => number));
+    public constructor(pos: () => [number, number]);
+    public constructor(a?: number | (() => number) | (() => [number, number]), b?: number | (() => number)) {
+        if (a === undefined) {
+            this.setPosition(0, 0);
+        }
+        else {
+            // @ts-ignore
+            this.setPosition(a, b);
+        }
     }
 
     public get x(): number {
@@ -35,29 +43,40 @@ export class Position {
     }
 
     public set x(value: number | (() => number)) {
+        this.xVal = this.xCalc();
+
         if (typeof value === "number") {
             this.xCalc = () => value;
-            this.xVal = value;
         }
         else {
             this.xCalc = value;
-            this.xVal = undefined;
         }
+
+        this.update();
     }
 
     public set y(value: number | (() => number)) {
+        this.yVal = this.yCalc();
+
         if (typeof value === "number") {
             this.yCalc = () => value;
-            this.yVal = value;
         }
         else {
             this.yCalc = value;
-            this.yVal = undefined
         }
+
+        this.update();
     }
 
-    public setPosition(x: number, y: number): void;
-    public setPosition(x: () => number, y: () => number): void;
+    public get coordinates() {
+        return [this.x, this.y];
+    }
+
+    public set coordinates([x, y]: [number, number]) {
+        this.setPosition(x, y);
+    }
+
+    public setPosition(x: number | (() => number), y: number | (() => number)): void;
     public setPosition(pos: () => [number, number]): void;
     public setPosition(a: number | (() => number) | (() => [number, number]), b?: number | (() => number)): void {
         if (b === undefined) {
@@ -81,10 +100,13 @@ export class Position {
     public update() {
         const [oldX, oldY] = [this.x, this.y];
         this.xVal = this.yVal = undefined;
-        const [newX, newY] = [this.x, this.y];
 
-        for (let listener of this.updateListeners) {
-            listener([oldX, oldY], [newX, newY]);
+        if (this.updateListeners.length > 0) {
+            const [newX, newY] = [this.x, this.y];
+    
+            for (let listener of this.updateListeners) {
+                listener([oldX, oldY], [newX, newY]);
+            }
         }
     }
 

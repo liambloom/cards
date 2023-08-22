@@ -108,18 +108,22 @@ export class CardPile implements Skinnable {
         public cardSpacing: number = 0, 
         public cardAngle: number = 0,
     ) {
+        this.position.addUpdateListener(() => {
+            this.updateCards(0, this.cards.length);
+        });
+
         for (let card of cards) {
             this.register(card);
         }
     }
 
-    public register(card: Card) {
-        card.position.setPosition(() => this.cardPosition(this.cards.indexOf(card)))
+    private register(card: Card) {
+        card.position.setPosition(() => this.cardPosition(this.cards.indexOf(card)));
     }
 
     private updateCards(start: number, end: number) {
         for (let i = start; i < end; i++) {
-            this.cards[i].position.update()
+            this.cards[i].position.update();
         }
     }
 
@@ -152,6 +156,37 @@ export class CardPileCombiner {
     public constructor(
         public readonly piles: CardPile[] = [],
     ) {
+        this.position.addUpdateListener(() => {
+            this.updatePiles(0, this.piles.length);
+        })
+
+        for (let pile of piles) {
+            this.register(pile);
+        }
+    }
+
+    private register(pile: CardPile) {
+        pile.position.addUpdateListener(() => {
+            this.updatePiles(this.piles.indexOf(pile) + 1, this.piles.length)
+        });
+
+        pile.position.setPosition(() => {
+            const index = this.piles.indexOf(pile);
+
+            if (index === 0) {
+                return this.position.coordinates;
+            }
+            else {
+                const under = this.piles[index - 1];
+                return under.cardPosition(under.cards.length);
+            }
+        });
+    }
+
+    private updatePiles(start: number, end: number) {
+        for (let i = start; i < end; i++) {
+            this.piles[i].position.update();
+        }
     }
 
     public draw(skin: Skin) {
