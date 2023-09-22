@@ -91,15 +91,6 @@ export class Suit {
     }
 }
 
-// TODO: this needs to be able to know all the cards that are added. But I don't want to fully 
-//      implement an array
-// Solution: `Proxy`s are an incredibly powerful feature of es6 that allows you to intercept and
-//      react to method calls, property additions and deletions, etc:
-//          https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy
-//          https://stackoverflow.com/a/5100420/11326662 (solution 3 in this answer)
-//
-// Importatn question: With this, do I still want to use the Position class? Probably
-
 export class CardPile implements Skinnable {
     public readonly position: Position = new Position();
     public readonly cards: Card[];
@@ -120,11 +111,11 @@ export class CardPile implements Skinnable {
         const cardPile = this;
 
         this.cards = new Proxy(cards, {
-            defineProperty(target, prop, value) {
+            defineProperty(target, prop, descriptor) {
                 if (typeof prop === "string" && prop === "" + parseInt(prop)) {
-                    cardPile.register(value.value);
+                    cardPile.register(descriptor.value);
                 }
-                return Reflect.defineProperty(...(arguments as unknown as [Card[], string | symbol, any]));
+                return Reflect.defineProperty(target, prop, descriptor);
             }
         });
     }
@@ -164,9 +155,10 @@ export class CardPile implements Skinnable {
 
 export class CardPileCombiner {
     public readonly position: Position = new Position();
+    public readonly piles: CardPile[];
 
     public constructor(
-        public readonly piles: CardPile[] = [],
+        piles: CardPile[] = [],
     ) {
         this.position.addUpdateListener(() => {
             this.updatePiles(0, this.piles.length);
@@ -175,6 +167,17 @@ export class CardPileCombiner {
         for (let pile of piles) {
             this.register(pile);
         }
+
+        const combiner = this;
+
+        this.piles = new Proxy(piles, {
+            defineProperty(target, prop, descriptor) {
+                if (typeof prop === "string" && prop === "" + parseInt(prop)) {
+                    combiner.register(descriptor.value);
+                }
+                return Reflect.defineProperty(target, prop, descriptor);
+            }
+        });
     }
 
     private register(pile: CardPile) {
