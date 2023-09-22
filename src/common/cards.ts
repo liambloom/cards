@@ -102,9 +102,10 @@ export class Suit {
 
 export class CardPile implements Skinnable {
     public readonly position: Position = new Position();
+    public readonly cards: Card[];
 
     public constructor (
-        public readonly cards: Card[] = [], 
+        cards: Card[] = [], 
         public cardSpacing: number = 0, 
         public cardAngle: number = 0,
     ) {
@@ -115,6 +116,17 @@ export class CardPile implements Skinnable {
         for (let card of cards) {
             this.register(card);
         }
+
+        const cardPile = this;
+
+        this.cards = new Proxy(cards, {
+            defineProperty(target, prop, value) {
+                if (typeof prop === "string" && prop === "" + parseInt(prop)) {
+                    cardPile.register(value.value);
+                }
+                return Reflect.defineProperty(...(arguments as unknown as [Card[], string | symbol, any]));
+            }
+        });
     }
 
     private register(card: Card) {
