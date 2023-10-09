@@ -1,6 +1,6 @@
-import { Skinnable, Skin, Position } from "./display";
+import { Skinnable, Skin, Position, Positioned } from "./display";
 
-export class Card implements Skinnable {
+export class Card implements Skinnable, Positioned {
     public readonly face: CardFace;
     public readonly position: Position = new Position();
 
@@ -91,7 +91,7 @@ export class Suit {
     }
 }
 
-export class CardPile implements Skinnable {
+export class CardPile implements Skinnable, Positioned {
     public readonly position: Position = new Position();
     public readonly cards: Card[];
 
@@ -153,7 +153,7 @@ export class CardPile implements Skinnable {
     }
 }
 
-export class CardPileCombiner {
+export class CardPileCombiner implements Positioned {
     public readonly position: Position = new Position();
     public readonly piles: CardPile[];
 

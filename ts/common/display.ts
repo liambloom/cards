@@ -6,7 +6,11 @@ export interface Skinnable {
     draw(skin: Skin): void;
 }
 
-type UpdateListener = (oldValue: [number, number], newValue: [number, number]) => void;
+export type UpdateListener = (oldValue: [number, number], newValue: [number, number]) => void;
+
+export interface Positioned {
+    get position(): Position;
+}
 
 export class Position {
     private xVal: number | undefined;
@@ -122,4 +126,35 @@ export class Position {
         }
         return false;
     }
+}
+
+export abstract class PositionTree implements Positioned {
+    public abstract get position(): Position;
+
+    constructor(protected readonly positionedElements: Positioned[] = []) {
+        this.position.addUpdateListener(() => {
+            this.updatePiles(0, this.piles.length);
+        })
+
+        for (let pile of piles) {
+            this.register(pile);
+        }
+
+        const combiner = this;
+
+        this.piles = new Proxy(piles, {
+            defineProperty(target, prop, descriptor) {
+                if (typeof prop === "string" && prop === "" + parseInt(prop)) {
+                    combiner.register(descriptor.value);
+                }
+                return Reflect.defineProperty(target, prop, descriptor);
+            }
+        });
+    }
+}
+
+// https://stackoverflow.com/a/49752227/11326662 TODO: understand???
+// U is a string that is the name of a key of type T where the value for that key is of type Position
+export function positionTree<T extends Positioned, U extends keyof { [P in keyof T as T[P] extends Position? P: never]: any }>(obj: T, elements: U) {
+
 }

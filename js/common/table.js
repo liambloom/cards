@@ -1,16 +1,13 @@
-import { Card, CardPile, CardPileCombiner } from "./cards";
-import { Position, Skin, Skinnable } from "./display";
-
-export class Table {
-
-    public constructor(
-        public readonly content: TableSlot[]
-    ) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.TableSlot = exports.Table = void 0;
+const display_1 = require("./display");
+class Table {
+    constructor(content) {
+        this.content = content;
     }
 }
-
-type TableSlotContent = Card | CardPile | CardPileCombiner | null;
-
+exports.Table = Table;
 // Position is private, and everything else that gets displayed gets displayed
 //  by being on the table, and its position is controlled, eventually, by the TableSlot.
 //  I can implement a more intricate and pretty way of organizing TableSlots,
@@ -19,36 +16,29 @@ type TableSlotContent = Card | CardPile | CardPileCombiner | null;
 //
 // Q: Is there a way to make positions package-private?
 //   
-export class TableSlot implements Skinnable {
-    private contentVal!: TableSlotContent;
-    private position: Position = new Position();
-
-    public constructor(
-        content: TableSlotContent = null,
-    ) {
+class TableSlot {
+    constructor(content = null) {
+        this.position = new display_1.Position();
         this.content = content;
-        
         this.position.addUpdateListener((_, newVal) => {
             if (this.content !== null) {
                 this.content.position.coordinates = newVal;
             }
         });
     }
-
-    public get content() {
+    get content() {
         return this.contentVal;
     }
-
-    public set content(value: TableSlotContent) {
+    set content(value) {
         this.contentVal = value;
         if (value !== null) {
             value.position.coordinates = this.position.coordinates;
         }
     }
-
-    public draw(skin: Skin) {
+    draw(skin) {
         if (this.content !== null) {
             this.content.draw(skin);
         }
     }
 }
+exports.TableSlot = TableSlot;
