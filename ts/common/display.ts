@@ -128,33 +128,52 @@ export class Position {
     }
 }
 
-export abstract class PositionTree implements Positioned {
-    public abstract get position(): Position;
+export abstract class PositionTree<C extends Positioned & Skinnable> implements Positioned, Skinnable {
+    public readonly position: Position = new Position();
+    public readonly children: C[];
 
-    constructor(protected readonly positionedElements: Positioned[] = []) {
+    constructor(position: Position, children: C[] = []) {
         this.position.addUpdateListener(() => {
-            this.updatePiles(0, this.piles.length);
+            this.updateChildPositions(0, this.children.length);
         })
 
-        for (let pile of piles) {
-            this.register(pile);
+        for (let child of children) {
+            this.register(child);
         }
 
-        const combiner = this;
+        const self = this;
 
-        this.piles = new Proxy(piles, {
+        this.children = new Proxy(children, {
             defineProperty(target, prop, descriptor) {
                 if (typeof prop === "string" && prop === "" + parseInt(prop)) {
-                    combiner.register(descriptor.value);
+                    self.register(descriptor.value);
                 }
                 return Reflect.defineProperty(target, prop, descriptor);
             }
         });
     }
-}
+    
+    private register(child: C) {
+        child.position.addUpdateListener(() => {
+            this.updateChildPositions(this.children.indexOf(child) + 1, this.children.length)
+        });
 
-// https://stackoverflow.com/a/49752227/11326662 TODO: understand???
-// U is a string that is the name of a key of type T where the value for that key is of type Position
-export function positionTree<T extends Positioned, U extends keyof { [P in keyof T as T[P] extends Position? P: never]: any }>(obj: T, elements: U) {
+        child.position.setPosition(() => {
+            return this.calculateChildPosition(this.children.indexOf(child), child);
+        });
+    }
 
+    protected updateChildPositions(start: number, end: number): void {
+        for (let child of this.children.slice(start, end)){
+            child.position.update();
+        }
+    }
+
+    public draw(skin: Skin) {
+        for (let child of this.children) {
+            child.draw(skin);
+        }
+    }
+
+    protected abstract calculateChildPosition(index?: number, child?: C): [number, number];
 }

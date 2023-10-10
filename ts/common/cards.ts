@@ -1,4 +1,4 @@
-import { Skinnable, Skin, Position, Positioned } from "./display";
+import { Skinnable, Skin, Position, Positioned, PositionTree } from "./display";
 
 export class Card implements Skinnable, Positioned {
     public readonly face: CardFace;
@@ -91,122 +91,56 @@ export class Suit {
     }
 }
 
-export class CardPile implements Skinnable, Positioned {
-    public readonly position: Position = new Position();
-    public readonly cards: Card[];
-
+export class CardPile extends PositionTree<Card> implements Skinnable {
     public constructor (
         cards: Card[] = [], 
         public cardSpacing: number = 0, 
         public cardAngle: number = 0,
     ) {
-        this.position.addUpdateListener(() => {
-            this.updateCards(0, this.cards.length);
-        });
-
-        for (let card of cards) {
-            this.register(card);
-        }
-
-        const cardPile = this;
-
-        this.cards = new Proxy(cards, {
-            defineProperty(target, prop, descriptor) {
-                if (typeof prop === "string" && prop === "" + parseInt(prop)) {
-                    cardPile.register(descriptor.value);
-                }
-                return Reflect.defineProperty(target, prop, descriptor);
-            }
-        });
-    }
-
-    private register(card: Card) {
-        card.position.setPosition(() => this.cardPosition(this.cards.indexOf(card)));
-    }
-
-    private updateCards(start: number, end: number) {
-        for (let i = start; i < end; i++) {
-            this.cards[i].position.update();
-        }
+        super(new Position(), cards);
     }
 
     public shuffle() {
         // https://stackoverflow.com/a/12646864/11326662
-        for (let i = this.cards.length - 1; i > 0; i--) {
+        for (let i = this.children.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            [this.cards[i], this.cards[j]] = [this.cards[j], this.cards[i]];
+            [this.children[i], this.children[j]] = [this.children[j], this.children[i]];
         }
 
-        this.updateCards(0, this.cards.length);
+        this.updateChildPositions(0, this.children.length);
     }
 
     public draw(skin: Skin) {
-        for (let card of this.cards) {
+        for (let card of this.children) {
             card.draw(skin);
         }
     }
 
     // This is public so cardpilecombiner can put the bottom card of a pile on top
     //  of this one in the place that the next card would be.
-    public cardPosition(index: number): [number, number] {
+    public calculateChildPosition(index: number): [number, number] {
         return [this.cardSpacing * index * Math.cos(this.cardAngle), this.cardSpacing * index * Math.sin(this.cardAngle)];
     }
 }
 
-export class CardPileCombiner implements Positioned {
-    public readonly position: Position = new Position();
-    public readonly piles: CardPile[];
-
-    public constructor(
-        piles: CardPile[] = [],
-    ) {
-        this.position.addUpdateListener(() => {
-            this.updatePiles(0, this.piles.length);
-        })
-
-        for (let pile of piles) {
-            this.register(pile);
-        }
-
-        const combiner = this;
-
-        this.piles = new Proxy(piles, {
-            defineProperty(target, prop, descriptor) {
-                if (typeof prop === "string" && prop === "" + parseInt(prop)) {
-                    combiner.register(descriptor.value);
-                }
-                return Reflect.defineProperty(target, prop, descriptor);
-            }
-        });
-    }
-
-    private register(pile: CardPile) {
-        pile.position.addUpdateListener(() => {
-            this.updatePiles(this.piles.indexOf(pile) + 1, this.piles.length)
-        });
-
-        pile.position.setPosition(() => {
-            const index = this.piles.indexOf(pile);
-
-            if (index === 0) {
-                return this.position.coordinates;
-            }
-            else {
-                const under = this.piles[index - 1];
-                return under.cardPosition(under.cards.length);
-            }
-        });
-    }
-
-    private updatePiles(start: number, end: number) {
-        for (let i = start; i < end; i++) {
-            this.piles[i].position.update();
-        }
+export class CardPileCombiner extends PositionTree<CardPile> implements Skinnable {
+    public constructor(piles: CardPile[] = [],) {
+        super(new Position(), piles);
     }
 
     public draw(skin: Skin) {
-        for (let pile of this.piles) {
+        for (let pile of this.children) {
             pile.draw(skin);
+        }
+    }
+
+    protected calculateChildPosition(index: number): [number, number] {
+        if (index === 0) {
+            return this.position.coordinates;
+        }
+        else {
+            const under = this.children[index - 1];
+            return under.calculateChildPosition(under.children.length);
         }
     }
 }
