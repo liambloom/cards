@@ -1,23 +1,49 @@
-import { Card } from "../common/cards";
+import { Card } from "../common/cards.js";
 
-export type Skin = (card: Card) => void;
+export interface Skin {
+    get cardWidth(): number;
+    get cardHeight(): number;
 
-export interface Skinnable {
-    draw(skin: Skin): void;
+    drawCard(card: Card): void;
 }
 
-export type UpdateListener = (oldValue: [number, number], newValue: [number, number]) => void;
+export const DEBUG_SKIN: Skin = {
+    cardWidth: 1,
+    cardHeight: 1,
 
-export interface Positioned {
-    get position(): Position;
+    drawCard(card: Card): void {
+        console.log(`${card.faceUp ? (card.face.value.symbol + card.face.suit.symbol) : "??"} @ Position (${card.position.x}, ${card.position.y})`);
+    }
+} as const;
+
+export abstract class Skinnable {
+    private skinVal: Skin = DEBUG_SKIN;
+    public abstract get position(): Position;
+
+    public get skin(): Skin {
+        return this.skinVal;
+    }
+
+    public set skin(val: Skin) {
+        this.setSkinNoRefresh(val);
+        this.draw();
+    }
+
+    public setSkinNoRefresh(val: Skin) {
+        this.skinVal = val;
+    }
+
+    abstract draw(): void;
 }
+
+export type PositionUpdateListener = (oldValue: [number, number], newValue: [number, number]) => void;
 
 export class Position {
     private xVal: number | undefined;
     private yVal: number | undefined;    
     private xCalc: () => number = () => 0;
     private yCalc: () => number = () => 0;
-    private updateListeners: UpdateListener[] = [];
+    private updateListeners: PositionUpdateListener[] = [];
 
     public constructor();
     public constructor(x: number | (() => number), y: number | (() => number));
@@ -114,11 +140,11 @@ export class Position {
         }
     }
 
-    public addUpdateListener(listener: UpdateListener) {
+    public addUpdateListener(listener: PositionUpdateListener) {
         this.updateListeners.push(listener);
     }
 
-    public removeUpdateListener(listener: UpdateListener) {
+    public removeUpdateListener(listener: PositionUpdateListener) {
         const index = this.updateListeners.indexOf(listener);
         if (index !== -1) {
             this.updateListeners.splice(index, 1);
@@ -128,20 +154,20 @@ export class Position {
     }
 }
 
-export abstract class PositionTree<C extends Positioned & Skinnable> implements Positioned, Skinnable {
+export type PositionTreeUpdateListener = (start: number, end: number) => void;
+
+export abstract class PositionTree<C extends Skinnable> extends Skinnable {
     public readonly position: Position = new Position();
     public readonly children: C[];
+    private readonly updateListeners: PositionTreeUpdateListener[] = [];
+    private depth: number = 0;
 
-    constructor(position: Position, children: C[] = []) {
+    constructor(children: C[] = []) {
+        super();
+
         this.position.addUpdateListener(() => {
-            this.updateChildPositions(0, this.children.length);
-        })
-
-        for (let child of children) {
-            this.register(child);
-        }
-
-        const self = this;
+            this.updateChildPositions();
+        });
 
         this.children = new Proxy(children, {
             defineProperty(target, prop, descriptor) {
@@ -151,11 +177,26 @@ export abstract class PositionTree<C extends Positioned & Skinnable> implements 
                 return Reflect.defineProperty(target, prop, descriptor);
             }
         });
+
+        for (let child of children) {
+            this.register(child);
+        }
+
+        const self = this;
+    }
+
+    public override setSkinNoRefresh(val: Skin) {
+        super.setSkinNoRefresh(val);
+
+        for (let child of this.children) {
+            child.setSkinNoRefresh(val);
+        }
     }
     
-    private register(child: C) {
+    protected register(child: C) {
         child.position.addUpdateListener(() => {
-            this.updateChildPositions(this.children.indexOf(child) + 1, this.children.length)
+            console.log("updating children after " + this.children.indexOf(child));
+            this.updateChildPositions(this.children.indexOf(child) + 1)
         });
 
         child.position.setPosition(() => {
@@ -163,15 +204,35 @@ export abstract class PositionTree<C extends Positioned & Skinnable> implements 
         });
     }
 
-    protected updateChildPositions(start: number, end: number): void {
-        for (let child of this.children.slice(start, end)){
+    protected updateChildPositions(start: number = 0, end: number = this.children.length): void {
+        this.depth++;
+        for (let child of this.children.slice(start, end)) {
+            console.log("updating child " + this.children.indexOf(child) + " @ depth " + this.depth);
             child.position.update();
         }
+
+        for (let listener of this.updateListeners) {
+            listener(start, end);
+        }
+        this.depth--;
     }
 
-    public draw(skin: Skin) {
+    public addUpdateListener(callback: PositionTreeUpdateListener): void {
+        this.updateListeners.push(callback);
+    }
+
+    public removeUpdateListener(callback: PositionTreeUpdateListener): boolean {
+        const index = this.updateListeners.indexOf(callback);
+        if (index === -1) {
+            return false;
+        }
+        this.updateListeners.splice(index, 1);
+        return true;
+    }
+
+    public override draw() {
         for (let child of this.children) {
-            child.draw(skin);
+            child.draw();
         }
     }
 

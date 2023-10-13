@@ -1,13 +1,35 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.TableSlot = exports.Table = void 0;
-const display_1 = require("./display");
-class Table {
-    constructor(content) {
+import { Position, PositionTree, Skinnable } from "./display.js";
+export class Table extends PositionTree {
+    constructor(content = [], skin) {
+        super();
         this.content = content;
+        if (skin !== undefined) {
+            this.setSkinNoRefresh(skin);
+        }
+    }
+    calculateChildPosition(index, child) {
+        return child.position.coordinates;
     }
 }
-exports.Table = Table;
+export class TableLayoutElement extends PositionTree {
+}
+export class TableRow extends TableLayoutElement {
+    constructor() {
+        super(...arguments);
+        this.position = new Position();
+        this.gapVal = 0;
+    }
+    get gap() {
+        return this.gapVal;
+    }
+    set gap(val) {
+        this.gapVal = val;
+        this.updateChildPositions();
+    }
+    calculateChildPosition(index) {
+        return [this.position.x, this.position.y + index * (this.gapVal + this.skin.cardWidth)];
+    }
+}
 // Position is private, and everything else that gets displayed gets displayed
 //  by being on the table, and its position is controlled, eventually, by the TableSlot.
 //  I can implement a more intricate and pretty way of organizing TableSlots,
@@ -16,9 +38,10 @@ exports.Table = Table;
 //
 // Q: Is there a way to make positions package-private?
 //   
-class TableSlot {
+export class TableSlot extends Skinnable {
     constructor(content = null) {
-        this.position = new display_1.Position();
+        super();
+        this.position = new Position();
         this.content = content;
         this.position.addUpdateListener((_, newVal) => {
             if (this.content !== null) {
@@ -35,10 +58,9 @@ class TableSlot {
             value.position.coordinates = this.position.coordinates;
         }
     }
-    draw(skin) {
+    draw() {
         if (this.content !== null) {
-            this.content.draw(skin);
+            this.content.draw();
         }
     }
 }
-exports.TableSlot = TableSlot;

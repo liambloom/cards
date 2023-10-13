@@ -1,21 +1,26 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const cards_1 = require("../../common/cards");
-const cardDisplay_1 = __importDefault(require("../../client/cardDisplay"));
-const { baseSkin } = (0, cardDisplay_1.default)(document.getElementById("game"));
-const deck = cards_1.decks.std52();
-const gamePiles = [];
+import { CardPile, CardPileCombiner, decks } from "../../common/cards.js";
+import cardDisplayInit from "../../client/cardDisplay.js";
+import { Table, TableRow, TableSlot } from "../../common/table.js";
+const canvas = document.getElementById("game");
+function setCanvasSize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.addEventListener("resize", setCanvasSize);
+setCanvasSize();
+const { baseSkin } = cardDisplayInit(canvas);
+const deck = decks.std52();
+const gamePiles = new TableRow();
 deck.shuffle();
 for (let i = 0; i < 7; i++) {
-    const topCard = deck.cards.pop();
+    const topCard = deck.children.pop();
     topCard.faceUp = true;
-    const combiner = new cards_1.CardPileCombiner([
-        new cards_1.CardPile(deck.cards.splice(deck.cards.length - i, i)),
-        new cards_1.CardPile([topCard])
+    const combiner = new CardPileCombiner([
+        new CardPile(deck.children.splice(deck.children.length - i, i)),
+        new CardPile([topCard])
     ]);
     combiner.position.coordinates = [350 * i + 50, 50];
-    gamePiles.push(combiner);
+    gamePiles.children.push(new TableSlot(combiner));
 }
+const table = new Table([gamePiles], baseSkin);
+table.draw();

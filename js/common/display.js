@@ -1,7 +1,26 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.Position = void 0;
-class Position {
+export const DEBUG_SKIN = {
+    cardWidth: 1,
+    cardHeight: 1,
+    drawCard(card) {
+        console.log(`${card.faceUp ? (card.face.value.symbol + card.face.suit.symbol) : "??"} @ Position (${card.position.x}, ${card.position.y})`);
+    }
+};
+export class Skinnable {
+    constructor() {
+        this.skinVal = DEBUG_SKIN;
+    }
+    get skin() {
+        return this.skinVal;
+    }
+    set skin(val) {
+        this.setSkinNoRefresh(val);
+        this.draw();
+    }
+    setSkinNoRefresh(val) {
+        this.skinVal = val;
+    }
+}
+export class Position {
     constructor(a, b) {
         this.xCalc = () => 0;
         this.yCalc = () => 0;
@@ -92,4 +111,68 @@ class Position {
         return false;
     }
 }
-exports.Position = Position;
+export class PositionTree extends Skinnable {
+    constructor(children = []) {
+        super();
+        this.position = new Position();
+        this.updateListeners = [];
+        this.depth = 0;
+        this.position.addUpdateListener(() => {
+            this.updateChildPositions();
+        });
+        this.children = new Proxy(children, {
+            defineProperty(target, prop, descriptor) {
+                if (typeof prop === "string" && prop === "" + parseInt(prop)) {
+                    self.register(descriptor.value);
+                }
+                return Reflect.defineProperty(target, prop, descriptor);
+            }
+        });
+        for (let child of children) {
+            this.register(child);
+        }
+        const self = this;
+    }
+    setSkinNoRefresh(val) {
+        super.setSkinNoRefresh(val);
+        for (let child of this.children) {
+            child.setSkinNoRefresh(val);
+        }
+    }
+    register(child) {
+        child.position.addUpdateListener(() => {
+            console.log("updating children after " + this.children.indexOf(child));
+            this.updateChildPositions(this.children.indexOf(child) + 1);
+        });
+        child.position.setPosition(() => {
+            return this.calculateChildPosition(this.children.indexOf(child), child);
+        });
+    }
+    updateChildPositions(start = 0, end = this.children.length) {
+        this.depth++;
+        for (let child of this.children.slice(start, end)) {
+            console.log("updating child " + this.children.indexOf(child) + " @ depth " + this.depth);
+            child.position.update();
+        }
+        for (let listener of this.updateListeners) {
+            listener(start, end);
+        }
+        this.depth--;
+    }
+    addUpdateListener(callback) {
+        this.updateListeners.push(callback);
+    }
+    removeUpdateListener(callback) {
+        const index = this.updateListeners.indexOf(callback);
+        if (index === -1) {
+            return false;
+        }
+        this.updateListeners.splice(index, 1);
+        return true;
+    }
+    draw() {
+        for (let child of this.children) {
+            child.draw();
+        }
+    }
+}

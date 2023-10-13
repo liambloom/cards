@@ -1,6 +1,6 @@
-import { Skinnable, Skin, Position, Positioned, PositionTree } from "./display";
+import { Skinnable, Skin, Position, PositionTree } from "./display.js";
 
-export class Card implements Skinnable, Positioned {
+export class Card extends Skinnable {
     public readonly face: CardFace;
     public readonly position: Position = new Position();
 
@@ -8,11 +8,13 @@ export class Card implements Skinnable, Positioned {
         value: CardValue, suit: Suit, 
         public faceUp: boolean = false,
     ) {
+        super();
+
         this.face = new CardFace(value, suit);
     }
 
-    public draw(skin: Skin) {
-       skin(this); 
+    public override draw() {
+       this.skin.drawCard(this); 
     }
 }
 
@@ -91,13 +93,13 @@ export class Suit {
     }
 }
 
-export class CardPile extends PositionTree<Card> implements Skinnable {
+export class CardPile extends PositionTree<Card> {
     public constructor (
         cards: Card[] = [], 
         public cardSpacing: number = 0, 
         public cardAngle: number = 0,
     ) {
-        super(new Position(), cards);
+        super(cards);
     }
 
     public shuffle() {
@@ -107,34 +109,30 @@ export class CardPile extends PositionTree<Card> implements Skinnable {
             [this.children[i], this.children[j]] = [this.children[j], this.children[i]];
         }
 
-        this.updateChildPositions(0, this.children.length);
-    }
-
-    public draw(skin: Skin) {
-        for (let card of this.children) {
-            card.draw(skin);
-        }
+        this.updateChildPositions();
     }
 
     // This is public so cardpilecombiner can put the bottom card of a pile on top
     //  of this one in the place that the next card would be.
-    public calculateChildPosition(index: number): [number, number] {
+    public override calculateChildPosition(index: number): [number, number] {
         return [this.cardSpacing * index * Math.cos(this.cardAngle), this.cardSpacing * index * Math.sin(this.cardAngle)];
     }
 }
 
-export class CardPileCombiner extends PositionTree<CardPile> implements Skinnable {
+export class CardPileCombiner extends PositionTree<CardPile> {
     public constructor(piles: CardPile[] = [],) {
-        super(new Position(), piles);
+        super(piles);
     }
 
-    public draw(skin: Skin) {
-        for (let pile of this.children) {
-            pile.draw(skin);
-        }
+    protected override register(pile: CardPile): void {
+        super.register(pile);
+        pile.addUpdateListener(() => {
+            const index = this.children.indexOf(pile);
+            this.updateChildPositions(index);
+        });
     }
 
-    protected calculateChildPosition(index: number): [number, number] {
+    protected override calculateChildPosition(index: number): [number, number] {
         if (index === 0) {
             return this.position.coordinates;
         }
