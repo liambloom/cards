@@ -106,6 +106,7 @@ export class CardPile extends PositionTree<Card> {
         // https://stackoverflow.com/a/12646864/11326662
         for (let i = this.children.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
+            console.log(`Shuffling: i=${i}, j=${j}`);
             [this.children[i], this.children[j]] = [this.children[j], this.children[i]];
         }
 
@@ -151,6 +152,6 @@ export namespace decks {
                 r.push(new Card(value, suit));
             }
         }
-        return new CardPile(r);
+        return new CardPile(r.slice(0, 12));
     }
 }

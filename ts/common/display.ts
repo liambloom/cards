@@ -171,6 +171,7 @@ export abstract class PositionTree<C extends Skinnable> extends Skinnable {
 
         this.children = new Proxy(children, {
             defineProperty(target, prop, descriptor) {
+                console.log(`Proxy set ${prop.toString()} = ${descriptor.value}`);
                 if (typeof prop === "string" && prop === "" + parseInt(prop)) {
                     self.register(descriptor.value);
                 }
@@ -195,7 +196,10 @@ export abstract class PositionTree<C extends Skinnable> extends Skinnable {
     
     protected register(child: C) {
         child.position.addUpdateListener(() => {
-            console.log("updating children after " + this.children.indexOf(child));
+            if (this.depth > 500) {
+                throw new RangeError("Update listener depth > 50");
+            }
+            console.log("updating children after " + this.children.indexOf(child) + "@ depth " + this.depth);
             this.updateChildPositions(this.children.indexOf(child) + 1)
         });
 
@@ -206,14 +210,23 @@ export abstract class PositionTree<C extends Skinnable> extends Skinnable {
 
     protected updateChildPositions(start: number = 0, end: number = this.children.length): void {
         this.depth++;
+        console.log(`Updating children ${start}-${end} @ depth ${this.depth}`);
         for (let child of this.children.slice(start, end)) {
             console.log("updating child " + this.children.indexOf(child) + " @ depth " + this.depth);
+            if (this.children.indexOf(child) < start) {
+                console.log(this.children);
+                throw new Error(`Child ${child} found at positions ${this.children.indexOf(child)} and `
+                    + `${this.children.indexOf(child, start)} of ${this}, duplicate children`
+                    + `are forbidden`);
+            }
             child.position.update();
         }
 
         for (let listener of this.updateListeners) {
             listener(start, end);
         }
+
+        console.log(`Done pdating children ${start}-${end} @ depth ${this.depth}`);
         this.depth--;
     }
 

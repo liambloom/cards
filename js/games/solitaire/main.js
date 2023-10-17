@@ -9,9 +9,13 @@ function setCanvasSize() {
 window.addEventListener("resize", setCanvasSize);
 setCanvasSize();
 const { baseSkin } = cardDisplayInit(canvas);
+console.log("Making deck");
 const deck = decks.std52();
+console.log("Deck made");
 const gamePiles = new TableRow();
+console.log("shuffling deck");
 deck.shuffle();
+console.log("done shuffling");
 for (let i = 0; i < 7; i++) {
     const topCard = deck.children.pop();
     topCard.faceUp = true;
