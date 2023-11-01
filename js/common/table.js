@@ -1,14 +1,25 @@
-import { Position, PositionTree, Skinnable } from "./display.js";
+import { DEBUG_SKIN, NewPos, PositionTree, Skinnable } from "./display.js";
 export class Table extends PositionTree {
-    constructor(content = [], skin) {
-        super();
-        this.content = content;
-        if (skin !== undefined) {
-            this.setSkinNoRefresh(skin);
+    constructor(children = [], skin = DEBUG_SKIN) {
+        super(children);
+        this.autoRedraw = true;
+        this.skinVal = skin;
+    }
+    get skin() {
+        return this.skinVal;
+    }
+    set skin(skin) {
+        this.skinVal = skin;
+        if (this.autoRedraw) {
+            this.draw();
         }
     }
-    calculateChildPosition(index, child) {
-        return child.position.coordinates;
+    calculateChildPosition({ child }) {
+        return child.position;
+    }
+    draw() {
+        console.log(this.skin);
+        super.draw(this.skin, new NewPos(-1, -1));
     }
 }
 export class TableLayoutElement extends PositionTree {
@@ -16,7 +27,7 @@ export class TableLayoutElement extends PositionTree {
 export class TableRow extends TableLayoutElement {
     constructor() {
         super(...arguments);
-        this.position = new Position();
+        this.position = new NewPos(0, 0);
         this.gapVal = 0;
     }
     get gap() {
@@ -26,8 +37,8 @@ export class TableRow extends TableLayoutElement {
         this.gapVal = val;
         this.updateChildPositions();
     }
-    calculateChildPosition(index) {
-        return [this.position.x, this.position.y + index * (this.gapVal + this.skin.cardWidth)];
+    calculateChildPosition({ index, skin }) {
+        return new NewPos(this.position.x + index * (this.gapVal + skin.cardWidth), this.position.y);
     }
 }
 // Position is private, and everything else that gets displayed gets displayed
@@ -41,26 +52,17 @@ export class TableRow extends TableLayoutElement {
 export class TableSlot extends Skinnable {
     constructor(content = null) {
         super();
-        this.position = new Position();
         this.content = content;
-        this.position.addUpdateListener((_, newVal) => {
-            if (this.content !== null) {
-                this.content.position.coordinates = newVal;
-            }
-        });
     }
     get content() {
         return this.contentVal;
     }
     set content(value) {
         this.contentVal = value;
-        if (value !== null) {
-            value.position.coordinates = this.position.coordinates;
-        }
     }
-    draw() {
+    draw(skin, pos) {
         if (this.content !== null) {
-            this.content.draw();
+            this.content.draw(skin, pos);
         }
     }
 }

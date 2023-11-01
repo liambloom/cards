@@ -1,30 +1,46 @@
 import { Card, CardPile, CardPileCombiner } from "./cards.js";
-import { Position, PositionTree, Skin, Skinnable } from "./display.js";
+import { DEBUG_SKIN, NewPos, PositionTree, PositioningData, Skin, Skinnable } from "./display.js";
 
 export class Table extends PositionTree<TableLayoutElement> {
+    private skinVal;
+    public autoRedraw: boolean = true;
 
     public constructor(
-        public readonly content: TableLayoutElement[] = [],
-        skin?: Skin
+        children: TableLayoutElement[] = [],
+        skin: Skin = DEBUG_SKIN
     ) {
-        super();
+        super(children);
+        this.skinVal = skin;
+    }
 
-        if (skin !== undefined) {
-            this.setSkinNoRefresh(skin);
+    public get skin(): Skin {
+        return this.skinVal;
+    }
+
+    public set skin(skin: Skin) {
+        this.skinVal = skin;
+        if (this.autoRedraw) {
+            this.draw();
         }
     }
 
-    public override calculateChildPosition(index: number, child: TableLayoutElement): [number, number] {
-        return child.position.coordinates;
+    public override calculateChildPosition({child}: PositioningData<TableLayoutElement>): NewPos {
+        return child.position;
+    }
+
+    public draw(): void {
+        console.log(this.skin);
+        super.draw(this.skin, new NewPos(-1, -1));
     }
 }
 
 export abstract class TableLayoutElement extends PositionTree<TableSlot> {
+    public abstract position: NewPos;
 
 }
 
 export class TableRow extends TableLayoutElement {
-    public readonly position = new Position();
+    public position = new NewPos(0, 0);
     private gapVal: number = 0;
 
     public get gap(): number {
@@ -36,8 +52,8 @@ export class TableRow extends TableLayoutElement {
         this.updateChildPositions();
     }
 
-    protected override calculateChildPosition(index: number): [number, number] {
-        return [this.position.x, this.position.y + index * (this.gapVal + this.skin.cardWidth)];
+    protected override calculateChildPosition({index, skin}: PositioningData<TableSlot>): NewPos {
+        return new NewPos(this.position.x + index * (this.gapVal + skin.cardWidth), this.position.y);
     }
 }
 
@@ -52,21 +68,14 @@ export type TableSlotContent = Card | CardPile | CardPileCombiner | null;
 // Q: Is there a way to make positions package-private?
 //   
 export class TableSlot extends Skinnable {
-    public readonly position: Position = new Position();
-    private contentVal!: TableSlotContent;
+    private contentVal!: TableSlotContent | null;
 
     public constructor(
-        content: TableSlotContent = null,
+        content: TableSlotContent | null = null,
     ) {
         super();
 
         this.content = content;
-        
-        this.position.addUpdateListener((_, newVal) => {
-            if (this.content !== null) {
-                this.content.position.coordinates = newVal;
-            }
-        });
     }
 
     public get content() {
@@ -75,14 +84,11 @@ export class TableSlot extends Skinnable {
 
     public set content(value: TableSlotContent) {
         this.contentVal = value;
-        if (value !== null) {
-            value.position.coordinates = this.position.coordinates;
-        }
     }
 
-    public override draw() {
+    public override draw(skin: Skin, pos: NewPos) {
         if (this.content !== null) {
-            this.content.draw();
+            this.content.draw(skin, pos);
         }
     }
 }

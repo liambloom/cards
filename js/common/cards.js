@@ -1,14 +1,13 @@
 var _a, _b;
-import { Skinnable, Position, PositionTree } from "./display.js";
+import { Skinnable, NewPos, PositionTree } from "./display.js";
 export class Card extends Skinnable {
     constructor(value, suit, faceUp = false) {
         super();
         this.faceUp = faceUp;
-        this.position = new Position();
         this.face = new CardFace(value, suit);
     }
-    draw() {
-        this.skin.drawCard(this);
+    draw(skin, pos) {
+        skin.drawCard(this, pos);
     }
 }
 export class CardFace {
@@ -52,17 +51,17 @@ CardValue.values = [_a.Ace, _a.N2, _a.N3, _a.N4, _a.N5, _a.N6,
     _a.N7, _a.N8, _a.N9, _a.N10, _a.Jack, _a.Queen, _a.King];
 export var Color;
 (function (Color) {
-    Color[Color["Black"] = 0] = "Black";
-    Color[Color["Red"] = 1] = "Red";
+    Color["Black"] = "black";
+    Color["Red"] = "red";
 })(Color || (Color = {}));
 export class Suit {
     static [Symbol.iterator]() {
         return this.values[Symbol.iterator]();
     }
-    constructor(name, symbol, value) {
+    constructor(name, symbol, color) {
         this.name = name;
         this.symbol = symbol;
-        this.value = value;
+        this.color = color;
     }
 }
 _b = Suit;
@@ -81,48 +80,53 @@ export class CardPile extends PositionTree {
         // https://stackoverflow.com/a/12646864/11326662
         for (let i = this.children.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            console.log(`Shuffling: i=${i}, j=${j}`);
+            // console.log(`Shuffling: i=${i}, j=${j}`);
             [this.children[i], this.children[j]] = [this.children[j], this.children[i]];
         }
-        this.updateChildPositions();
     }
     // This is public so cardpilecombiner can put the bottom card of a pile on top
     //  of this one in the place that the next card would be.
-    calculateChildPosition(index) {
-        return [this.cardSpacing * index * Math.cos(this.cardAngle), this.cardSpacing * index * Math.sin(this.cardAngle)];
+    calculateChildPosition({ ownPosition, index }) {
+        return new NewPos(ownPosition.x + this.cardSpacing * index * Math.cos(this.cardAngle), ownPosition.y + this.cardSpacing * index * Math.sin(this.cardAngle));
     }
 }
 export class CardPileCombiner extends PositionTree {
     constructor(piles = []) {
         super(piles);
     }
-    register(pile) {
-        super.register(pile);
-        pile.addUpdateListener(() => {
-            const index = this.children.indexOf(pile);
-            this.updateChildPositions(index);
-        });
-    }
-    calculateChildPosition(index) {
+    // protected override register(pile: CardPile): void {
+    //     super.register(pile);
+    //     pile.addUpdateListener(() => {
+    //         const index = this.children.indexOf(pile);
+    //         this.updateChildPositions(index);
+    //     });
+    // }
+    calculateChildPosition({ ownPosition, index, skin }) {
         if (index === 0) {
-            return this.position.coordinates;
+            return ownPosition;
         }
         else {
             const under = this.children[index - 1];
-            return under.calculateChildPosition(under.children.length);
+            return under.calculateChildPosition({
+                ownPosition: this.childPositions[index - 1],
+                index: under.children.length,
+                skin,
+                child: null
+            });
         }
     }
 }
 export var decks;
 (function (decks) {
     function std52() {
+        var _c;
         let r = [];
         for (let suit of Suit) {
             for (let value of CardValue) {
                 r.push(new Card(value, suit));
             }
         }
-        return new CardPile(r.slice(0, 12));
+        return new CardPile(r.slice(0, +((_c = new URLSearchParams(new URL(location.href).searchParams).get("deckSize")) !== null && _c !== void 0 ? _c : 52)));
     }
     decks.std52 = std52;
 })(decks || (decks = {}));

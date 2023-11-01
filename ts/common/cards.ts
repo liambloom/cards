@@ -1,8 +1,7 @@
-import { Skinnable, Skin, Position, PositionTree } from "./display.js";
+import { Skinnable, Skin, NewPos, PositionTree, PositioningData } from "./display.js";
 
 export class Card extends Skinnable {
     public readonly face: CardFace;
-    public readonly position: Position = new Position();
 
     public constructor(
         value: CardValue, suit: Suit, 
@@ -13,8 +12,8 @@ export class Card extends Skinnable {
         this.face = new CardFace(value, suit);
     }
 
-    public override draw() {
-       this.skin.drawCard(this); 
+    public override draw(skin: Skin, pos: NewPos) {
+       skin.drawCard(this, pos); 
     }
 }
 
@@ -69,8 +68,8 @@ export class CardValue {
 }
 
 export enum Color {
-    Black,
-    Red
+    Black = "black",
+    Red = "red"
 }
 
 export class Suit {
@@ -88,7 +87,7 @@ export class Suit {
     private constructor(
         public readonly name: string, 
         public readonly symbol: string, 
-        public readonly value: Color
+        public readonly color: Color
     ) {
     }
 }
@@ -106,17 +105,15 @@ export class CardPile extends PositionTree<Card> {
         // https://stackoverflow.com/a/12646864/11326662
         for (let i = this.children.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            console.log(`Shuffling: i=${i}, j=${j}`);
+            // console.log(`Shuffling: i=${i}, j=${j}`);
             [this.children[i], this.children[j]] = [this.children[j], this.children[i]];
         }
-
-        this.updateChildPositions();
     }
 
     // This is public so cardpilecombiner can put the bottom card of a pile on top
     //  of this one in the place that the next card would be.
-    public override calculateChildPosition(index: number): [number, number] {
-        return [this.cardSpacing * index * Math.cos(this.cardAngle), this.cardSpacing * index * Math.sin(this.cardAngle)];
+    public override calculateChildPosition({ownPosition, index}: PositioningData<Card>): NewPos {
+        return new NewPos(ownPosition.x + this.cardSpacing * index * Math.cos(this.cardAngle), ownPosition.y + this.cardSpacing * index * Math.sin(this.cardAngle));
     }
 }
 
@@ -125,21 +122,26 @@ export class CardPileCombiner extends PositionTree<CardPile> {
         super(piles);
     }
 
-    protected override register(pile: CardPile): void {
-        super.register(pile);
-        pile.addUpdateListener(() => {
-            const index = this.children.indexOf(pile);
-            this.updateChildPositions(index);
-        });
-    }
+    // protected override register(pile: CardPile): void {
+    //     super.register(pile);
+    //     pile.addUpdateListener(() => {
+    //         const index = this.children.indexOf(pile);
+    //         this.updateChildPositions(index);
+    //     });
+    // }
 
-    protected override calculateChildPosition(index: number): [number, number] {
+    protected override calculateChildPosition({ownPosition, index, skin}: PositioningData<CardPile>): NewPos {
         if (index === 0) {
-            return this.position.coordinates;
+            return ownPosition;
         }
         else {
             const under = this.children[index - 1];
-            return under.calculateChildPosition(under.children.length);
+            return under.calculateChildPosition({ 
+                ownPosition: this.childPositions[index - 1], 
+                index: under.children.length, 
+                skin, 
+                child: null as unknown as Card 
+            });
         }
     }
 }
@@ -152,6 +154,6 @@ export namespace decks {
                 r.push(new Card(value, suit));
             }
         }
-        return new CardPile(r.slice(0, 12));
+        return new CardPile(r.slice(0, +(new URLSearchParams(new URL(location.href).searchParams).get("deckSize") ?? 52)));
     }
 }
