@@ -152,13 +152,6 @@ export class NewPos {
 
 export type PositionTreeUpdateListener = (start: number, end: number) => void;
 
-export interface PositioningData<C> {
-    ownPosition: NewPos, 
-    index: number, 
-    child: C,
-    skin: Skin,
-}
-
 export abstract class PositionTree<C extends Skinnable> extends Skinnable {
     private latest: NewPos = new NewPos(-1, -1);
     protected childPositions: NewPos[] = [];
@@ -166,6 +159,10 @@ export abstract class PositionTree<C extends Skinnable> extends Skinnable {
 
     constructor(public readonly children: C[] = []) {
         super();
+    }
+
+    public get latestPosition() {
+        return this.latest;
     }
 
     protected updateChildPositions(start: number = 0, end: number = this.children.length): void {
@@ -197,7 +194,7 @@ export abstract class PositionTree<C extends Skinnable> extends Skinnable {
 
         for (let i = 0; i < this.children.length; i++) {
             if (this.childPositions[i] === undefined) {
-                this.childPositions[i] = this.calculateChildPosition({ownPosition: pos, index: i, child: this.children[i], skin});
+                this.childPositions[i] = this.calculateChildPosition(i, skin);
             }
 
             this.children[i].draw(skin, this.childPositions[i]);
@@ -207,5 +204,5 @@ export abstract class PositionTree<C extends Skinnable> extends Skinnable {
     /// This is calculated for each element in the tree lazily, depth-first. It can only be reliable called
     /// during a call to the draw() method. Because it is depth-first, earlier children, earlier siblings, and
     /// children of those siblings will be accurate if you call this method during the drawing process.
-    protected abstract calculateChildPosition(data: PositioningData<C>): NewPos;
+    public abstract calculateChildPosition(index: number, skin: Skin): NewPos;
 }

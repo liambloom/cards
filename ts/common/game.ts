@@ -1,32 +1,32 @@
 // import { v4 as uuid } from "../../node_modules/uuid/dist/index.js";
 import { GameAnimation } from "../client/animation.js";
+import { NewPos, PositionTree } from "./display.js";
 
-
-
-export interface GameItem {
-    itemId: string
-}
-
-export function register(item: GameItem): void {
+export function register(item: PositionTree<any>): void {
 
 }
 
-// export class Player implements GameItem {
-//     // public readonly itemId: string = uuid();
+export class Player {
+    public readonly playerId: string = "";//uuid();
 
-//     public constructor() {
+    public constructor() {
 
-//     }
-// }
+    }
+}
 
-// export class Action {
-//     animation: GameAnimation;
-//     target: GameItem;
-//     source?: Player;
-//     targetContainer: GameItem;
-//     targetIndex: number;
+export class Action {
 
-//     public constructor() {
+    public constructor(
+        public readonly animation: GameAnimation,
+        public readonly subject: PositionTree<any>,
+        public readonly targetContainer: PositionTree<any>,
+        public readonly targetIndex: number,
+        public readonly source?: Player
+    ) {
 
-//     }
-// }
+    }
+
+    public complete() {
+        this.targetContainer.children.splice(this.targetIndex, 0, this.subject);
+    }
+}

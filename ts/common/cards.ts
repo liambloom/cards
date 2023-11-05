@@ -1,4 +1,4 @@
-import { Skinnable, Skin, NewPos, PositionTree, PositioningData } from "./display.js";
+import { Skinnable, Skin, NewPos, PositionTree } from "./display.js";
 
 export class Card extends Skinnable {
     public readonly face: CardFace;
@@ -112,8 +112,8 @@ export class CardPile extends PositionTree<Card> {
 
     // This is public so cardpilecombiner can put the bottom card of a pile on top
     //  of this one in the place that the next card would be.
-    public override calculateChildPosition({ownPosition, index}: PositioningData<Card>): NewPos {
-        return new NewPos(ownPosition.x + this.cardSpacing * index * Math.cos(this.cardAngle), ownPosition.y + this.cardSpacing * index * Math.sin(this.cardAngle));
+    public override calculateChildPosition(index: number): NewPos {
+        return new NewPos(this.latestPosition.x + this.cardSpacing * index * Math.cos(this.cardAngle), this.latestPosition.y + this.cardSpacing * index * Math.sin(this.cardAngle));
     }
 }
 
@@ -130,18 +130,13 @@ export class CardPileCombiner extends PositionTree<CardPile> {
     //     });
     // }
 
-    protected override calculateChildPosition({ownPosition, index, skin}: PositioningData<CardPile>): NewPos {
+    public override calculateChildPosition(index: number, skin: Skin): NewPos {
         if (index === 0) {
-            return ownPosition;
+            return this.latestPosition;
         }
         else {
             const under = this.children[index - 1];
-            return under.calculateChildPosition({ 
-                ownPosition: this.childPositions[index - 1], 
-                index: under.children.length, 
-                skin, 
-                child: null as unknown as Card 
-            });
+            return under.calculateChildPosition(under.children.length);
         }
     }
 }

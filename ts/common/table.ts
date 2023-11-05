@@ -1,5 +1,5 @@
 import { Card, CardPile, CardPileCombiner } from "./cards.js";
-import { DEBUG_SKIN, NewPos, PositionTree, PositioningData, Skin, Skinnable } from "./display.js";
+import { DEBUG_SKIN, NewPos, PositionTree, Skin, Skinnable } from "./display.js";
 
 export class Table extends PositionTree<TableLayoutElement> {
 
@@ -10,8 +10,8 @@ export class Table extends PositionTree<TableLayoutElement> {
         super(children);
     }
 
-    public override calculateChildPosition({child}: PositioningData<TableLayoutElement>): NewPos {
-        return child.position;
+    public override calculateChildPosition(index: number): NewPos {
+        return this.children[index].position;
     }
 
     public draw(): void {
@@ -38,7 +38,7 @@ export class TableRow extends TableLayoutElement {
         this.updateChildPositions();
     }
 
-    protected override calculateChildPosition({index, skin}: PositioningData<TableSlot>): NewPos {
+    public override calculateChildPosition(index: number, skin: Skin): NewPos {
         return new NewPos(this.position.x + index * (this.gapVal + skin.cardWidth), this.position.y);
     }
 }

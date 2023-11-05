@@ -1,28 +1,11 @@
-import { GameItem } from "../common/game.js";
-
-
-
-export class LocationPositionRequest {
-    public position?: number;
-
-    public constructor(
-        public readonly parent: GameItem,
-        public readonly index: number,
-    ) {
-
-    }
-}
-
-export class ItemPositionRequest {
-    public position?: number;
-
-    public constructor(
-        public readonly item: GameItem,
-    ) {}
-}
+import { NewPos, PositionTree, Skin } from "../common/display.js";
 
 export class GameAnimation {
+    private started = false;
     private startTime?: number;
+    private startPos?: NewPos;
+    private endPos?: NewPos;
+    private subject?: PositionTree<any>;
 
     /**
      * 
@@ -34,10 +17,33 @@ export class GameAnimation {
         public readonly duration: number,
     ) { }
 
-    public start(time: number) {
+    public start(subject: PositionTree<any>, time: number, startPos: NewPos, endPos: NewPos) {
+        if (this.started === true) {
+            throw new Error("Cannot start animation more than once");
+        }
+        else {
+            this.started = true;
+        }
+
+        this.subject = subject;
         this.startTime = time;
+        this.startPos = startPos;
+        this.endPos = endPos;
     }
 
+    public isCompleted(time: number): boolean {
+        return this.startTime! + this.duration >= time;
+    }
+
+    public draw(skin: Skin, time: number) {
+        if (!this.started) {
+            throw new Error("Cannot draw animation before it has started");
+        }
+
+        const progress = this.timeFunction((time - this.startTime!) / this.duration!);
+        this.subject!.draw(skin, new NewPos((this.endPos!.x - this.startPos!.x) * progress + this.startPos!.x,
+            (this.endPos!.y - this.startPos!.y) * progress + this.startPos!.y));
+    }
     // public 
 }
 
