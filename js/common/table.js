@@ -2,23 +2,13 @@ import { DEBUG_SKIN, NewPos, PositionTree, Skinnable } from "./display.js";
 export class Table extends PositionTree {
     constructor(children = [], skin = DEBUG_SKIN) {
         super(children);
-        this.autoRedraw = true;
-        this.skinVal = skin;
-    }
-    get skin() {
-        return this.skinVal;
-    }
-    set skin(skin) {
-        this.skinVal = skin;
-        if (this.autoRedraw) {
-            this.draw();
-        }
+        this.skin = skin;
     }
     calculateChildPosition({ child }) {
         return child.position;
     }
     draw() {
-        console.log(this.skin);
+        // console.log(this.skin);
         super.draw(this.skin, new NewPos(-1, -1));
     }
 }

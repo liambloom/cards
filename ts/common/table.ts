@@ -2,26 +2,12 @@ import { Card, CardPile, CardPileCombiner } from "./cards.js";
 import { DEBUG_SKIN, NewPos, PositionTree, PositioningData, Skin, Skinnable } from "./display.js";
 
 export class Table extends PositionTree<TableLayoutElement> {
-    private skinVal;
-    public autoRedraw: boolean = true;
 
     public constructor(
         children: TableLayoutElement[] = [],
-        skin: Skin = DEBUG_SKIN
+        public skin: Skin = DEBUG_SKIN
     ) {
         super(children);
-        this.skinVal = skin;
-    }
-
-    public get skin(): Skin {
-        return this.skinVal;
-    }
-
-    public set skin(skin: Skin) {
-        this.skinVal = skin;
-        if (this.autoRedraw) {
-            this.draw();
-        }
     }
 
     public override calculateChildPosition({child}: PositioningData<TableLayoutElement>): NewPos {
@@ -29,7 +15,7 @@ export class Table extends PositionTree<TableLayoutElement> {
     }
 
     public draw(): void {
-        console.log(this.skin);
+        // console.log(this.skin);
         super.draw(this.skin, new NewPos(-1, -1));
     }
 }
