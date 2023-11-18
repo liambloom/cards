@@ -26,6 +26,9 @@ export class PositionTree extends Skinnable {
         this.childPositions = [];
         this.updateListeners = [];
     }
+    get latestPosition() {
+        return this.latest;
+    }
     updateChildPositions(start = 0, end = this.children.length) {
         this.childPositions = this.childPositions.slice(start, this.children.length);
         for (let listener of this.updateListeners) {
@@ -50,7 +53,7 @@ export class PositionTree extends Skinnable {
         this.latest = pos;
         for (let i = 0; i < this.children.length; i++) {
             if (this.childPositions[i] === undefined) {
-                this.childPositions[i] = this.calculateChildPosition({ ownPosition: pos, index: i, child: this.children[i], skin });
+                this.childPositions[i] = this.calculateChildPosition(i, skin);
             }
             this.children[i].draw(skin, this.childPositions[i]);
         }

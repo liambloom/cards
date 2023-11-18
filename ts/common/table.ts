@@ -1,7 +1,7 @@
 import { Card, CardPile, CardPileCombiner } from "./cards.js";
-import { DEBUG_SKIN, NewPos, PositionTree, Skin, Skinnable } from "./display.js";
+import { DEBUG_SKIN, NewPos, Parent, Skin, Element, HitBox, Rectangle } from "./display.js";
 
-export class Table extends PositionTree<TableLayoutElement> {
+export class Table extends Parent<TableLayoutElement> {
 
     public constructor(
         children: TableLayoutElement[] = [],
@@ -14,13 +14,13 @@ export class Table extends PositionTree<TableLayoutElement> {
         return this.children[index].position;
     }
 
-    public draw(): void {
+    public draw(): HitBox {
         // console.log(this.skin);
-        super.draw(this.skin, new NewPos(-1, -1));
+        return super.draw(this.skin, new NewPos(-1, -1));
     }
 }
 
-export abstract class TableLayoutElement extends PositionTree<TableSlot> {
+export abstract class TableLayoutElement extends Parent<TableSlot> {
     public abstract position: NewPos;
 
 }
@@ -53,7 +53,7 @@ export type TableSlotContent = Card | CardPile | CardPileCombiner | null;
 //
 // Q: Is there a way to make positions package-private?
 //   
-export class TableSlot extends Skinnable {
+export class TableSlot extends Element {
     private contentVal!: TableSlotContent | null;
 
     public constructor(
@@ -72,9 +72,10 @@ export class TableSlot extends Skinnable {
         this.contentVal = value;
     }
 
-    public override draw(skin: Skin, pos: NewPos) {
+    public override draw(skin: Skin, pos: NewPos): HitBox {
         if (this.content !== null) {
-            this.content.draw(skin, pos);
+            return this.content.draw(skin, pos);
         }
+        return new HitBox([new Rectangle(new NewPos(0, 0), 0, 0)]);
     }
 }

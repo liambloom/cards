@@ -79,6 +79,9 @@ export class GameClient {
             if (action.animation.isCompleted(time)) {
                 action.complete();
                 this.currentAnimations.splice(i--, 1);
+                if (action.next !== undefined) {
+                    this.doAction(action.next);
+                }
             }
             else {
                 action.animation.draw(this.table.skin, time);
@@ -86,7 +89,7 @@ export class GameClient {
         }
 
         for (let action of this.pendingAnimations) {
-            action.animation.start(action.subject, time, action.subject.latestPosition, 
+            action.start(time,
                 action.targetContainer.calculateChildPosition(action.targetIndex, this.table.skin));
             this.currentAnimations.push(action);
         }
@@ -98,6 +101,9 @@ export class GameClient {
     public doAction(action: Action): void {
         if (action.animation.duration === 0) {
             action.complete();
+            if (action.next !== undefined) {
+                this.doAction(action.next);
+            }
         }
         else {
             this.pendingAnimations.push(action);

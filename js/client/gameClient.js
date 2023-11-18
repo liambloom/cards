@@ -5,6 +5,8 @@ export class GameClient {
         this.ctx = ctx;
         this.began = false;
         this.remove = () => { };
+        this.pendingAnimations = [];
+        this.currentAnimations = [];
         this.widthVal = width;
         this.heightVal = height;
         this.table = new Table([], skin);
@@ -49,9 +51,32 @@ export class GameClient {
             requestAnimationFrame(this.frame);
         }
     }
-    frame() {
+    frame(time) {
         this.ctx.clearRect(0, 0, this.width, this.height);
         this.table.draw();
+        for (let i = 0; i < this.currentAnimations.length; i++) {
+            const action = this.currentAnimations[i];
+            if (action.animation.isCompleted(time)) {
+                action.complete();
+                this.currentAnimations.splice(i--, 1);
+            }
+            else {
+                action.animation.draw(this.table.skin, time);
+            }
+        }
+        for (let action of this.pendingAnimations) {
+            action.animation.start(action.subject, time, action.subject.latestPosition, action.targetContainer.calculateChildPosition(action.targetIndex, this.table.skin));
+            this.currentAnimations.push(action);
+        }
+        this.pendingAnimations.length = 0;
         requestAnimationFrame(this.frame);
+    }
+    doAction(action) {
+        if (action.animation.duration === 0) {
+            action.complete();
+        }
+        else {
+            this.pendingAnimations.push(action);
+        }
     }
 }

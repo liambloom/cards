@@ -6,7 +6,7 @@ export interface Skin {
     get minValueVisibleWidth(): number;
     get minValueVisibleHeight(): number;
 
-    drawCard(card: Card, position: NewPos): void;
+    drawCard(card: Card, position: NewPos): HitBox;
 }
 
 export const DEBUG_SKIN: Skin = {
@@ -15,14 +15,11 @@ export const DEBUG_SKIN: Skin = {
     minValueVisibleHeight: 1,
     minValueVisibleWidth: 1,
 
-    drawCard(card: Card, position: NewPos): void {
+    drawCard(card: Card, position: NewPos): HitBox {
         console.log(`${card.faceUp ? (card.face.value.symbol + card.face.suit.symbol) : "??"} @ Position (${position.x}, ${position.y})`);
+        return new HitBox([new Rectangle(position, this.cardWidth, this.cardHeight)]);
     }
 } as const;
-
-export abstract class Skinnable {
-    abstract draw(skin: Skin, pos: NewPos): void;
-}
 
 export class NewPos {
     public constructor(public readonly x: number, public readonly y: number) { }
@@ -32,137 +29,72 @@ export class NewPos {
     }
 }
 
-// export type PositionUpdateListener = (oldValue: [number, number], newValue: [number, number]) => void;
+// TODO: Just have element do this. When a click happens, call something on the table, that
+// passes it down like this, WITHOUT
 
-// export class Position {
-//     private xVal: number | undefined;
-//     private yVal: number | undefined;    
-//     private xCalc: () => number = () => 0;
-//     private yCalc: () => number = () => 0;
-//     private updateListeners: PositionUpdateListener[] = [];
+export class HitBoxEvent {
+    public constructor(
+        public readonly target: Element,
+        public readonly currentTarget: Element,
+    ) {}
+}
 
-//     public constructor();
-//     public constructor(x: number | (() => number), y: number | (() => number));
-//     public constructor(pos: () => [number, number]);
-//     public constructor(a?: number | (() => number) | (() => [number, number]), b?: number | (() => number)) {
-//         if (a === undefined) {
-//             this.setPosition(0, 0);
-//         }
-//         else {
-//             // @ts-ignore
-//             this.setPosition(a, b);
-//         }
-//     }
+interface HitBoxTreeElement {
+    getTarget(pos: NewPos, callback: (e: HitBoxEvent) => void): Element | null;
+}
 
-//     public get x(): number {
-//         if (this.xVal === undefined) {
-//             this.xVal = this.xCalc();
-//         }
-//         return this.xVal;
-//     }
+export class HitBoxTree implements HitBoxTreeElement {
+    public constructor(public readonly children: ReadonlyArray<HitBoxTreeElement>) {
 
-//     public get y(): number {
-//         if (this.yVal === undefined) {
-//             this.yVal = this.yCalc();
-//         }
-//         return this.yVal;
-//     }
-
-//     public set x(value: number | (() => number)) {
-//         this.xVal = this.xCalc();
-
-//         if (typeof value === "number") {
-//             this.xCalc = () => value;
-//         }
-//         else {
-//             this.xCalc = value;
-//         }
-
-//         this.update();
-//     }
-
-//     public set y(value: number | (() => number)) {
-//         this.yVal = this.yCalc();
-
-//         if (typeof value === "number") {
-//             this.yCalc = () => value;
-//         }
-//         else {
-//             this.yCalc = value;
-//         }
-
-//         this.update();
-//     }
-
-//     public get coordinates() {
-//         return [this.x, this.y];
-//     }
-
-//     public set coordinates([x, y]: [number, number]) {
-//         this.setPosition(x, y);
-//     }
-
-//     public setPosition(x: number | (() => number), y: number | (() => number)): void;
-//     public setPosition(pos: () => [number, number]): void;
-//     public setPosition(a: number | (() => number) | (() => [number, number]), b?: number | (() => number)): void {
-//         if (b === undefined) {
-//             this.x = () => {
-//                 const [x, y] = (a as (() => [number, number]))();
-//                 this.yVal = y;
-//                 return x;
-//             }
-//             this.y = () => {
-//                 const [x, y] = (a as (() => [number, number]))();
-//                 this.xVal = x;
-//                 return y;
-//             }
-//         }
-//         else {
-//             this.x = a as number | (() => number);
-//             this.y = b;
-//         }
-//     }
-
-//     public update() {
-//         const [oldX, oldY] = [this.x, this.y];
-//         this.xVal = this.yVal = undefined;
-
-//         if (this.updateListeners.length > 0) {
-//             const [newX, newY] = [this.x, this.y];
+    }
     
-//             for (let listener of this.updateListeners) {
-//                 listener([oldX, oldY], [newX, newY]);
-//             }
-//         }
-//     }
 
-//     public addUpdateListener(listener: PositionUpdateListener) {
-//         this.updateListeners.push(listener);
-//     }
+    public getTarget(pos: NewPos, callback: (e: HitBoxEvent) => void): Element | null {
 
-//     public removeUpdateListener(listener: PositionUpdateListener) {
-//         const index = this.updateListeners.indexOf(listener);
-//         if (index !== -1) {
-//             this.updateListeners.splice(index, 1);
-//             return true;
-//         }
-//         return false;
-//     }
-// }
+    }
+
+}
+export class Rectangle implements HitBoxTreeElement {
+    public constructor(
+        public readonly subject: Element,
+        public readonly pos: NewPos, 
+        public readonly width: number, 
+        public readonly height: number
+    ) {
+    }
+
+    public getTarget(pos: NewPos, callback: (e: HitBoxEvent) => void): Element | null {
+        if (pos.x >= this.pos.x 
+            && pos.y >= this.pos.y
+            && pos.x <= this.pos.x + this.width
+            && pos.y <= this.pos.y + this.height) {
+            callback(new HitBoxEvent(this.subject, this.subject))
+
+            return this.subject;
+        }
+        return null;  
+    }
+}
+
 
 export type PositionTreeUpdateListener = (start: number, end: number) => void;
 
-export abstract class PositionTree<C extends Skinnable> extends Skinnable {
-    private latest: NewPos = new NewPos(-1, -1);
+export abstract class Element {
+    protected latest: NewPos = new NewPos(-1, -1);
+
+    public get latestPosition() {
+        return this.latest;
+    }
+
+    abstract draw(skin: Skin, pos: NewPos): HitBox;
+}
+
+export abstract class Parent<C extends Element> extends Element {
     protected childPositions: NewPos[] = [];
     private readonly updateListeners: PositionTreeUpdateListener[] = [];
 
     constructor(public readonly children: C[] = []) {
         super();
-    }
-
-    public get latestPosition() {
-        return this.latest;
     }
 
     protected updateChildPositions(start: number = 0, end: number = this.children.length): void {
@@ -192,13 +124,15 @@ export abstract class PositionTree<C extends Skinnable> extends Skinnable {
         }
         this.latest = pos;
 
+        let hitbox = new HitBox([]);
         for (let i = 0; i < this.children.length; i++) {
             if (this.childPositions[i] === undefined) {
                 this.childPositions[i] = this.calculateChildPosition(i, skin);
             }
 
-            this.children[i].draw(skin, this.childPositions[i]);
+            hitbox = hitbox.union(this.children[i].draw(skin, this.childPositions[i]));
         }
+        return hitbox;
     }
 
     /// This is calculated for each element in the tree lazily, depth-first. It can only be reliable called

@@ -4,8 +4,8 @@ export class Table extends PositionTree {
         super(children);
         this.skin = skin;
     }
-    calculateChildPosition({ child }) {
-        return child.position;
+    calculateChildPosition(index) {
+        return this.children[index].position;
     }
     draw() {
         // console.log(this.skin);
@@ -27,7 +27,7 @@ export class TableRow extends TableLayoutElement {
         this.gapVal = val;
         this.updateChildPositions();
     }
-    calculateChildPosition({ index, skin }) {
+    calculateChildPosition(index, skin) {
         return new NewPos(this.position.x + index * (this.gapVal + skin.cardWidth), this.position.y);
     }
 }

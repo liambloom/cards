@@ -1,16 +1,19 @@
 export function register(item) {
 }
-// export class Player implements GameItem {
-//     // public readonly itemId: string = uuid();
-//     public constructor() {
-//     }
-// }
-// export class Action {
-//     animation: GameAnimation;
-//     target: GameItem;
-//     source?: Player;
-//     targetContainer: GameItem;
-//     targetIndex: number;
-//     public constructor() {
-//     }
-// }
+export class Player {
+    constructor() {
+        this.playerId = ""; //uuid();
+    }
+}
+export class Action {
+    constructor(animation, subject, targetContainer, targetIndex, source) {
+        this.animation = animation;
+        this.subject = subject;
+        this.targetContainer = targetContainer;
+        this.targetIndex = targetIndex;
+        this.source = source;
+    }
+    complete() {
+        this.targetContainer.children.splice(this.targetIndex, 0, this.subject);
+    }
+}

@@ -1,11 +1,11 @@
-import { NewPos, PositionTree, Skin } from "../common/display.js";
+import { NewPos, Parent, Skin, Element } from "../common/display.js";
 
 export class GameAnimation {
     private started = false;
     private startTime?: number;
+    private subject?: Element;
     private startPos?: NewPos;
     private endPos?: NewPos;
-    private subject?: PositionTree<any>;
 
     /**
      * 
@@ -17,7 +17,7 @@ export class GameAnimation {
         public readonly duration: number,
     ) { }
 
-    public start(subject: PositionTree<any>, time: number, startPos: NewPos, endPos: NewPos) {
+    public start(subject: Element, time: number, endPos: NewPos) {
         if (this.started === true) {
             throw new Error("Cannot start animation more than once");
         }
@@ -27,7 +27,7 @@ export class GameAnimation {
 
         this.subject = subject;
         this.startTime = time;
-        this.startPos = startPos;
+        this.startPos = subject.latestPosition;
         this.endPos = endPos;
     }
 

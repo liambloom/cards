@@ -86,8 +86,8 @@ export class CardPile extends PositionTree {
     }
     // This is public so cardpilecombiner can put the bottom card of a pile on top
     //  of this one in the place that the next card would be.
-    calculateChildPosition({ ownPosition, index }) {
-        return new NewPos(ownPosition.x + this.cardSpacing * index * Math.cos(this.cardAngle), ownPosition.y + this.cardSpacing * index * Math.sin(this.cardAngle));
+    calculateChildPosition(index) {
+        return new NewPos(this.latestPosition.x + this.cardSpacing * index * Math.cos(this.cardAngle), this.latestPosition.y + this.cardSpacing * index * Math.sin(this.cardAngle));
     }
 }
 export class CardPileCombiner extends PositionTree {
@@ -101,18 +101,13 @@ export class CardPileCombiner extends PositionTree {
     //         this.updateChildPositions(index);
     //     });
     // }
-    calculateChildPosition({ ownPosition, index, skin }) {
+    calculateChildPosition(index, skin) {
         if (index === 0) {
-            return ownPosition;
+            return this.latestPosition;
         }
         else {
             const under = this.children[index - 1];
-            return under.calculateChildPosition({
-                ownPosition: this.childPositions[index - 1],
-                index: under.children.length,
-                skin,
-                child: null
-            });
+            return under.calculateChildPosition(under.children.length);
         }
     }
 }

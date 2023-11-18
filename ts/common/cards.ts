@@ -1,6 +1,6 @@
-import { Skinnable, Skin, NewPos, PositionTree } from "./display.js";
+import { Element, Skin, NewPos, Parent, HitBox } from "./display.js";
 
-export class Card extends Skinnable {
+export class Card extends Element {
     public readonly face: CardFace;
 
     public constructor(
@@ -12,8 +12,8 @@ export class Card extends Skinnable {
         this.face = new CardFace(value, suit);
     }
 
-    public override draw(skin: Skin, pos: NewPos) {
-       skin.drawCard(this, pos); 
+    public override draw(skin: Skin, pos: NewPos): HitBox {
+       return skin.drawCard(this, pos); 
     }
 }
 
@@ -92,7 +92,7 @@ export class Suit {
     }
 }
 
-export class CardPile extends PositionTree<Card> {
+export class CardPile extends Parent<Card> {
     public constructor (
         cards: Card[] = [], 
         public cardSpacing: number = 0, 
@@ -117,7 +117,7 @@ export class CardPile extends PositionTree<Card> {
     }
 }
 
-export class CardPileCombiner extends PositionTree<CardPile> {
+export class CardPileCombiner extends Parent<CardPile> {
     public constructor(piles: CardPile[] = [],) {
         super(piles);
     }
