@@ -1,3 +1,4 @@
+import { NewPos } from "../common/display.js";
 import { Table } from "../common/table.js";
 export class GameClient {
     constructor(canvas, ctx, skin, width, height) {
@@ -7,12 +8,21 @@ export class GameClient {
         this.remove = () => { };
         this.pendingAnimations = [];
         this.currentAnimations = [];
+        this.clickListeners = [];
         this.widthVal = width;
         this.heightVal = height;
         this.table = new Table([], skin);
         this.setCanvasSize = this.setCanvasSize.bind(this);
         this.frame = this.frame.bind(this);
         this.setCanvasSize();
+        this.canvas.addEventListener("click", event => {
+            console.log("click");
+            this.table.maybeClick(new NewPos(event.offsetX, event.offsetY), event2 => {
+                for (let listener of this.clickListeners) {
+                    listener(event2);
+                }
+            });
+        });
     }
     get width() {
         return this.widthVal;
@@ -55,17 +65,22 @@ export class GameClient {
         this.ctx.clearRect(0, 0, this.width, this.height);
         this.table.draw();
         for (let i = 0; i < this.currentAnimations.length; i++) {
+            console.log("doing current animation");
             const action = this.currentAnimations[i];
             if (action.animation.isCompleted(time)) {
                 action.complete();
                 this.currentAnimations.splice(i--, 1);
+                if (action.next !== undefined) {
+                    this.doAction(action.next);
+                }
             }
             else {
                 action.animation.draw(this.table.skin, time);
             }
         }
         for (let action of this.pendingAnimations) {
-            action.animation.start(action.subject, time, action.subject.latestPosition, action.targetContainer.calculateChildPosition(action.targetIndex, this.table.skin));
+            console.log("processing pending animation");
+            action.start(time, action.targetContainer.calculateChildPosition(action.targetIndex, this.table.skin));
             this.currentAnimations.push(action);
         }
         this.pendingAnimations.length = 0;
@@ -74,9 +89,21 @@ export class GameClient {
     doAction(action) {
         if (action.animation.duration === 0) {
             action.complete();
+            if (action.next !== undefined) {
+                this.doAction(action.next);
+            }
         }
         else {
             this.pendingAnimations.push(action);
+        }
+    }
+    addClickListener(callback) {
+        this.clickListeners.push(callback);
+    }
+    removeClickListener(callback) {
+        const i = this.clickListeners.indexOf(callback);
+        if (i !== -1) {
+            this.clickListeners.splice(i, 1);
         }
     }
 }

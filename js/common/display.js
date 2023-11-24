@@ -1,14 +1,3 @@
-export const DEBUG_SKIN = {
-    cardWidth: 1,
-    cardHeight: 1,
-    minValueVisibleHeight: 1,
-    minValueVisibleWidth: 1,
-    drawCard(card, position) {
-        console.log(`${card.faceUp ? (card.face.value.symbol + card.face.suit.symbol) : "??"} @ Position (${position.x}, ${position.y})`);
-    }
-};
-export class Skinnable {
-}
 export class NewPos {
     constructor(x, y) {
         this.x = x;
@@ -18,16 +7,42 @@ export class NewPos {
         return this.x === other.x && this.y === other.y;
     }
 }
-export class PositionTree extends Skinnable {
-    constructor(children = []) {
-        super();
-        this.children = children;
+// TODO: Just have element do this. When a click happens, call something on the table, that
+// passes it down like this, WITHOUT
+export class HitBoxEvent {
+    constructor(target, currentTarget, targetStack) {
+        this.target = target;
+        this.currentTarget = currentTarget;
+        this.targetStack = targetStack;
+    }
+}
+export class Rectangle {
+    constructor(pos, width, height) {
+        this.pos = pos;
+        this.width = width;
+        this.height = height;
+    }
+    checkHit(pos) {
+        return pos.x >= this.pos.x
+            && pos.y >= this.pos.y
+            && pos.x <= this.pos.x + this.width
+            && pos.y <= this.pos.y + this.height;
+    }
+}
+export class Element {
+    constructor() {
         this.latest = new NewPos(-1, -1);
-        this.childPositions = [];
-        this.updateListeners = [];
     }
     get latestPosition() {
         return this.latest;
+    }
+}
+export class Parent extends Element {
+    constructor(children = []) {
+        super();
+        this.children = children;
+        this.childPositions = [];
+        this.updateListeners = [];
     }
     updateChildPositions(start = 0, end = this.children.length) {
         this.childPositions = this.childPositions.slice(start, this.children.length);
@@ -47,7 +62,8 @@ export class PositionTree extends Skinnable {
         return true;
     }
     draw(skin, pos) {
-        if (!pos.equals(this.latest)) {
+        // console.log("draw " + this.constructor);
+        if (!pos.equals(this.latestPosition)) {
             this.childPositions = [];
         }
         this.latest = pos;
@@ -57,5 +73,15 @@ export class PositionTree extends Skinnable {
             }
             this.children[i].draw(skin, this.childPositions[i]);
         }
+    }
+    maybeClick(pos, callback, targetStack) {
+        for (let i = this.children.length - 1; i >= 0; i--) {
+            const hit = this.children[i].maybeClick(pos, callback, [this, ...targetStack]);
+            if (hit !== null) {
+                callback(new HitBoxEvent(hit[0], this, hit));
+                return hit;
+            }
+        }
+        return null;
     }
 }

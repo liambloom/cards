@@ -1,4 +1,4 @@
-import { Skin } from "../common/display.js";
+import { HitBoxEvent, NewPos, Skin } from "../common/display.js";
 import { Action } from "../common/game.js";
 import { Table } from "../common/table.js";
 import { GameAnimation } from "./animation.js";
@@ -11,6 +11,7 @@ export class GameClient {
     private remove: () => void = () => {};
     private readonly pendingAnimations: Action[] = [];
     private readonly currentAnimations: Action[]= [];
+    private readonly clickListeners: ((e: HitBoxEvent) => void)[] = [];
 
     public constructor(public readonly canvas: HTMLCanvasElement, public readonly ctx: CanvasRenderingContext2D, skin: Skin, width: number, height: number) {
         this.widthVal = width;
@@ -20,6 +21,15 @@ export class GameClient {
         this.setCanvasSize = this.setCanvasSize.bind(this);
         this.frame = this.frame.bind(this);
         this.setCanvasSize();
+
+        this.canvas.addEventListener("click", event => {
+            console.log("click");
+            this.table.maybeClick(new NewPos(event.offsetX, event.offsetY), event2 => {
+                for (let listener of this.clickListeners) {
+                    listener(event2);
+                }
+            })
+        });
     }
 
     public get width() {
@@ -75,6 +85,7 @@ export class GameClient {
         this.table.draw();
 
         for (let i = 0; i < this.currentAnimations.length; i++) {
+            console.log("doing current animation");
             const action = this.currentAnimations[i];
             if (action.animation.isCompleted(time)) {
                 action.complete();
@@ -89,6 +100,7 @@ export class GameClient {
         }
 
         for (let action of this.pendingAnimations) {
+            console.log("processing pending animation");
             action.start(time,
                 action.targetContainer.calculateChildPosition(action.targetIndex, this.table.skin));
             this.currentAnimations.push(action);
@@ -107,6 +119,17 @@ export class GameClient {
         }
         else {
             this.pendingAnimations.push(action);
+        }
+    }
+
+    public addClickListener(callback: (e: HitBoxEvent) => void): void {
+        this.clickListeners.push(callback);
+    }
+
+    public removeClickListener(callback: (e: HitBoxEvent) => void): void {
+        const i = this.clickListeners.indexOf(callback);
+        if (i !== -1) {
+            this.clickListeners.splice(i, 1);
         }
     }
 }

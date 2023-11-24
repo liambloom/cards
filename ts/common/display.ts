@@ -5,21 +5,8 @@ export interface Skin {
     get cardHeight(): number;
     get minValueVisibleWidth(): number;
     get minValueVisibleHeight(): number;
-
-    drawCard(card: Card, position: NewPos): HitBox;
+    get ctx(): CanvasRenderingContext2D;
 }
-
-export const DEBUG_SKIN: Skin = {
-    cardWidth: 1,
-    cardHeight: 1,
-    minValueVisibleHeight: 1,
-    minValueVisibleWidth: 1,
-
-    drawCard(card: Card, position: NewPos): HitBox {
-        console.log(`${card.faceUp ? (card.face.value.symbol + card.face.suit.symbol) : "??"} @ Position (${position.x}, ${position.y})`);
-        return new HitBox([new Rectangle(position, this.cardWidth, this.cardHeight)]);
-    }
-} as const;
 
 export class NewPos {
     public constructor(public readonly x: number, public readonly y: number) { }
@@ -36,43 +23,27 @@ export class HitBoxEvent {
     public constructor(
         public readonly target: Element,
         public readonly currentTarget: Element,
+        public readonly targetStack: Element[],
     ) {}
 }
 
-interface HitBoxTreeElement {
-    getTarget(pos: NewPos, callback: (e: HitBoxEvent) => void): Element | null;
+export interface HitBox {
+    checkHit(pos: NewPos): boolean;
 }
 
-export class HitBoxTree implements HitBoxTreeElement {
-    public constructor(public readonly children: ReadonlyArray<HitBoxTreeElement>) {
-
-    }
-    
-
-    public getTarget(pos: NewPos, callback: (e: HitBoxEvent) => void): Element | null {
-
-    }
-
-}
-export class Rectangle implements HitBoxTreeElement {
+export class Rectangle {
     public constructor(
-        public readonly subject: Element,
         public readonly pos: NewPos, 
         public readonly width: number, 
         public readonly height: number
     ) {
     }
 
-    public getTarget(pos: NewPos, callback: (e: HitBoxEvent) => void): Element | null {
-        if (pos.x >= this.pos.x 
+    public checkHit(pos: NewPos): boolean {
+        return pos.x >= this.pos.x 
             && pos.y >= this.pos.y
             && pos.x <= this.pos.x + this.width
-            && pos.y <= this.pos.y + this.height) {
-            callback(new HitBoxEvent(this.subject, this.subject))
-
-            return this.subject;
-        }
-        return null;  
+            && pos.y <= this.pos.y + this.height
     }
 }
 
@@ -82,11 +53,13 @@ export type PositionTreeUpdateListener = (start: number, end: number) => void;
 export abstract class Element {
     protected latest: NewPos = new NewPos(-1, -1);
 
-    public get latestPosition() {
+    public get latestPosition(): NewPos {
         return this.latest;
     }
 
-    abstract draw(skin: Skin, pos: NewPos): HitBox;
+    public abstract maybeClick(pos: NewPos, callback: (e: HitBoxEvent) => void, targetStack: Element[]): Element[] | null;
+
+    abstract draw(skin: Skin, pos: NewPos): void;
 }
 
 export abstract class Parent<C extends Element> extends Element {
@@ -119,20 +92,30 @@ export abstract class Parent<C extends Element> extends Element {
     }
 
     public override draw(skin: Skin, pos: NewPos) {
-        if (!pos.equals(this.latest)) {
+        // console.log("draw " + this.constructor);
+        if (!pos.equals(this.latestPosition)) {
             this.childPositions = [];
         }
         this.latest = pos;
 
-        let hitbox = new HitBox([]);
         for (let i = 0; i < this.children.length; i++) {
             if (this.childPositions[i] === undefined) {
                 this.childPositions[i] = this.calculateChildPosition(i, skin);
             }
 
-            hitbox = hitbox.union(this.children[i].draw(skin, this.childPositions[i]));
+            this.children[i].draw(skin, this.childPositions[i]);
         }
-        return hitbox;
+    }
+
+    public override maybeClick(pos: NewPos, callback: (e: HitBoxEvent) => void, targetStack: Element[]): Element[] | null {
+        for (let i = this.children.length - 1; i >= 0; i--) {
+            const hit = this.children[i].maybeClick(pos, callback, [this, ...targetStack]);
+            if (hit !== null) {
+                callback(new HitBoxEvent(hit[0], this, hit));
+                return hit;
+            }
+        }
+        return null;
     }
 
     /// This is calculated for each element in the tree lazily, depth-first. It can only be reliable called

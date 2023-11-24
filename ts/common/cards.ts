@@ -1,7 +1,9 @@
-import { Element, Skin, NewPos, Parent, HitBox } from "./display.js";
+import { Element, Skin, NewPos, Parent, HitBox, HitBoxEvent, Rectangle } from "./display.js";
 
 export class Card extends Element {
     public readonly face: CardFace;
+    public glow: string | null = null;
+    private latestHitbox?: HitBox;
 
     public constructor(
         value: CardValue, suit: Suit, 
@@ -12,8 +14,33 @@ export class Card extends Element {
         this.face = new CardFace(value, suit);
     }
 
-    public override draw(skin: Skin, pos: NewPos): HitBox {
-       return skin.drawCard(this, pos); 
+    public override draw(skin: Skin, position: NewPos) {
+        // console.log("draw");
+        skin.ctx.fillStyle = this.faceUp ? "white" : "darkred";
+        if (this.glow) {
+            skin.ctx.shadowColor = this.glow;
+            skin.ctx.shadowBlur = 10;
+        }
+        skin.ctx.fillRect(position.x, position.y, skin.cardWidth, skin.cardHeight);
+        skin.ctx.shadowBlur = 0;
+        skin.ctx.strokeStyle = "black";
+        skin.ctx.strokeRect(position.x, position.y, skin.cardWidth, skin.cardHeight);
+        if (this.faceUp) {
+            skin.ctx.fillStyle = this.face.suit.color;
+            skin.ctx.textBaseline = "top";
+            skin.ctx.font = "24px Serif";
+            skin.ctx.fillText(this.face.value.symbol + this.face.suit.symbol, position.x + 10, position.y + 10);
+        }
+        this.latestHitbox = new Rectangle(position, skin.cardWidth, skin.cardHeight);
+    }
+    
+    public maybeClick(pos: NewPos, callback: (e: HitBoxEvent) => void, targetStack: Element[]): Element[] | null {
+        if (this.latestHitbox?.checkHit(pos)) {
+            const localTargetStack = [this, ...targetStack];
+            callback(new HitBoxEvent(this, this, localTargetStack));
+            return localTargetStack;
+        }
+        return null;
     }
 }
 

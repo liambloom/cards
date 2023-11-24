@@ -10,7 +10,7 @@ export class GameAnimation {
         this.duration = duration;
         this.started = false;
     }
-    start(subject, time, startPos, endPos) {
+    start(subject, time, endPos) {
         if (this.started === true) {
             throw new Error("Cannot start animation more than once");
         }
@@ -19,13 +19,15 @@ export class GameAnimation {
         }
         this.subject = subject;
         this.startTime = time;
-        this.startPos = startPos;
+        this.startPos = subject.latestPosition;
         this.endPos = endPos;
     }
     isCompleted(time) {
-        return this.startTime + this.duration >= time;
+        console.log(`checking completion, startTime: ${this.startTime}, duration: ${this.duration}, time: ${time}`);
+        return this.startTime + this.duration <= time;
     }
     draw(skin, time) {
+        console.log("animating");
         if (!this.started) {
             throw new Error("Cannot draw animation before it has started");
         }

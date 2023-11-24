@@ -1,11 +1,11 @@
 import { Card, CardPile, CardPileCombiner } from "./cards.js";
-import { DEBUG_SKIN, NewPos, Parent, Skin, Element, HitBox, Rectangle } from "./display.js";
+import { NewPos, Parent, Skin, Element, HitBox, Rectangle, HitBoxEvent } from "./display.js";
 
 export class Table extends Parent<TableLayoutElement> {
 
     public constructor(
         children: TableLayoutElement[] = [],
-        public skin: Skin = DEBUG_SKIN
+        public skin: Skin,
     ) {
         super(children);
     }
@@ -14,9 +14,20 @@ export class Table extends Parent<TableLayoutElement> {
         return this.children[index].position;
     }
 
-    public draw(): HitBox {
+    public override maybeClick(pos: NewPos, callback: (e: HitBoxEvent) => void): Element[] {
+        let cardTarget = super.maybeClick(pos, callback, [this]);
+        if (cardTarget === null) {
+            callback(new HitBoxEvent(this, this, [this]));
+            return [this];
+        }
+        else {
+            return cardTarget;
+        }
+    }
+
+    public draw(): void {
         // console.log(this.skin);
-        return super.draw(this.skin, new NewPos(-1, -1));
+        super.draw(this.skin, new NewPos(-1, -1));
     }
 }
 
@@ -54,10 +65,10 @@ export type TableSlotContent = Card | CardPile | CardPileCombiner | null;
 // Q: Is there a way to make positions package-private?
 //   
 export class TableSlot extends Element {
-    private contentVal!: TableSlotContent | null;
+    private contentVal!: TableSlotContent;
 
     public constructor(
-        content: TableSlotContent | null = null,
+        content: TableSlotContent = null,
     ) {
         super();
 
@@ -72,10 +83,15 @@ export class TableSlot extends Element {
         this.contentVal = value;
     }
 
-    public override draw(skin: Skin, pos: NewPos): HitBox {
+    
+    public override maybeClick(pos: NewPos, callback: (e: HitBoxEvent) => void, targetStack: Element[]): Element[] | null {
+        return this.contentVal?.maybeClick(pos, callback, targetStack) ?? null;
+    }
+
+    public override draw(skin: Skin, pos: NewPos): void {
+        // console.log("drawing slot containing " + this.contentVal);
         if (this.content !== null) {
-            return this.content.draw(skin, pos);
+            this.content.draw(skin, pos);
         }
-        return new HitBox([new Rectangle(new NewPos(0, 0), 0, 0)]);
     }
 }

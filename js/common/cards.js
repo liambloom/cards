@@ -1,13 +1,39 @@
 var _a, _b;
-import { Skinnable, NewPos, PositionTree } from "./display.js";
-export class Card extends Skinnable {
+import { Element, NewPos, Parent, HitBoxEvent, Rectangle } from "./display.js";
+export class Card extends Element {
     constructor(value, suit, faceUp = false) {
         super();
         this.faceUp = faceUp;
+        this.glow = null;
         this.face = new CardFace(value, suit);
     }
-    draw(skin, pos) {
-        skin.drawCard(this, pos);
+    draw(skin, position) {
+        // console.log("draw");
+        skin.ctx.fillStyle = this.faceUp ? "white" : "darkred";
+        if (this.glow) {
+            skin.ctx.shadowColor = this.glow;
+            skin.ctx.shadowBlur = 10;
+        }
+        skin.ctx.fillRect(position.x, position.y, skin.cardWidth, skin.cardHeight);
+        skin.ctx.shadowBlur = 0;
+        skin.ctx.strokeStyle = "black";
+        skin.ctx.strokeRect(position.x, position.y, skin.cardWidth, skin.cardHeight);
+        if (this.faceUp) {
+            skin.ctx.fillStyle = this.face.suit.color;
+            skin.ctx.textBaseline = "top";
+            skin.ctx.font = "24px Serif";
+            skin.ctx.fillText(this.face.value.symbol + this.face.suit.symbol, position.x + 10, position.y + 10);
+        }
+        this.latestHitbox = new Rectangle(position, skin.cardWidth, skin.cardHeight);
+    }
+    maybeClick(pos, callback, targetStack) {
+        var _c;
+        if ((_c = this.latestHitbox) === null || _c === void 0 ? void 0 : _c.checkHit(pos)) {
+            const localTargetStack = [this, ...targetStack];
+            callback(new HitBoxEvent(this, this, localTargetStack));
+            return localTargetStack;
+        }
+        return null;
     }
 }
 export class CardFace {
@@ -70,7 +96,7 @@ Suit.Hearts = new Suit("Hearts", "\u2661", Color.Red);
 Suit.Diamonds = new Suit("Diamonds", "\u2662", Color.Red);
 Suit.Clubs = new Suit("Clubs", "\u2663", Color.Black);
 Suit.values = [_b.Spades, _b.Hearts, _b.Diamonds, _b.Clubs];
-export class CardPile extends PositionTree {
+export class CardPile extends Parent {
     constructor(cards = [], cardSpacing = 0, cardAngle = 0) {
         super(cards);
         this.cardSpacing = cardSpacing;
@@ -90,7 +116,7 @@ export class CardPile extends PositionTree {
         return new NewPos(this.latestPosition.x + this.cardSpacing * index * Math.cos(this.cardAngle), this.latestPosition.y + this.cardSpacing * index * Math.sin(this.cardAngle));
     }
 }
-export class CardPileCombiner extends PositionTree {
+export class CardPileCombiner extends Parent {
     constructor(piles = []) {
         super(piles);
     }

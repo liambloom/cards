@@ -32,10 +32,12 @@ export class GameAnimation {
     }
 
     public isCompleted(time: number): boolean {
-        return this.startTime! + this.duration >= time;
+        console.log(`checking completion, startTime: ${this.startTime}, duration: ${this.duration}, time: ${time}`);
+        return this.startTime! + this.duration <= time;
     }
 
     public draw(skin: Skin, time: number) {
+        console.log("animating");
         if (!this.started) {
             throw new Error("Cannot draw animation before it has started");
         }
