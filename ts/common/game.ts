@@ -114,12 +114,16 @@ export class FlipAction extends Action<Card> {
         }
 
         const scale = Math.abs(Math.cos(progress * Math.PI));
+        this.skin.ctx.translate(this.subject!.latestPosition.x, this.subject!.latestPosition.y);
         if (this.direction === FlipDirection.Horizontal) {
+            this.skin.ctx.translate(this.skin.cardWidth * (1 - scale) / 2, 0);
             this.skin.ctx.scale(scale, 1);
         }
         else {
+            this.skin.ctx.translate(0, this.skin.cardHeight * (1 - scale) / 2);
             this.skin.ctx.scale(1, scale);
         }
+        this.skin.ctx.translate(-this.subject!.latestPosition.x, -this.subject!.latestPosition.y);
 
         this.subject!.draw(this.skin, this.subject.latestPosition);
 

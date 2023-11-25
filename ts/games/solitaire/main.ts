@@ -40,26 +40,27 @@ for (let i = 0; i < 7; i++) {
 const gameClient = new GameClient(canvas, ctx, skin, 1000, 1000);
 gameClient.table.children.push(gamePiles);
 
+// For easy debugging
 (window as unknown as {gameClient: GameClient}).gameClient = gameClient;
 
 let currentSelected: Card | null = null;
 let currentMoves: MoveAction<Card>[] = [];
 
 gameClient.addClickListener(e => {
-    let didMove = false;
-    if (e.currentTarget instanceof Card) {
-        for (let move of currentMoves) {
-            console.log(e.currentTarget);
-            console.log(move.targetContainer.children[move.targetContainer.children.length - 1]);
-            if (e.currentTarget === move.targetContainer.children[move.targetContainer.children.length - 1]) {
-                gameClient.doAction(move);
-                didMove = true;
-                break;
+    let selectionBlocker = false;
+    if (currentSelected && (e.target !== currentSelected || (selectionBlocker ||= e.currentTarget === currentSelected))) {
+        if (e.currentTarget instanceof Card) {
+            for (let move of currentMoves) {
+                console.log(e.currentTarget);
+                console.log(move.targetContainer.children[move.targetContainer.children.length - 1]);
+                if (e.currentTarget === move.targetContainer.children[move.targetContainer.children.length - 1]) {
+                    gameClient.doAction(move);
+                    selectionBlocker = true;
+                    break;
+                }
             }
         }
-    }
-    console.log(currentSelected);
-    if (currentSelected && (!(e.target instanceof Card) || e.target !== currentSelected)) {
+
         console.log("clear")
         currentSelected.glow = null;
         currentSelected = null;
@@ -70,14 +71,12 @@ gameClient.addClickListener(e => {
         }
         currentMoves.length = 0;
     }
-    if (e.currentTarget instanceof Card && !didMove) {
+    if (!selectionBlocker && e.currentTarget instanceof Card) {
         currentSelected = e.currentTarget;
         currentSelected.glow = "cyan";
 
         for (let pileContainer of gamePiles.children) {
             const destPileCombiner = pileContainer.content as CardPileCombiner;
-            // Keep pile combiner and both piles until all cards are gone, once all cards are gone, clear the slot
-
             const destCardPile = destPileCombiner.children[1];
 
             if (destCardPile.children.length === 0) {
@@ -92,7 +91,7 @@ gameClient.addClickListener(e => {
                 }
                 const action = new MoveAction({
                     timeFunction: n => n,
-                    duration: 1000, 
+                    duration: 700, 
                     subjectContainer: e.targetStack[1] as Parent<Card>, 
                     subject: e.currentTarget, 
                     targetContainer: destCardPile, 
@@ -131,7 +130,7 @@ gameClient.addClickListener(e => {
             }
         }
     }
-    didMove = false;
+    selectionBlocker = false;
 });
 
 console.log("drawing");
