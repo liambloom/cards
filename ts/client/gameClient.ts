@@ -1,7 +1,7 @@
 import { HitBoxEvent, NewPos, Skin } from "../common/display.js";
 import { Action } from "../common/game.js";
 import { Table } from "../common/table.js";
-import { GameAnimation } from "./animation.js";
+import { Element } from "../common/display.js";
 
 export class GameClient {
     private began: boolean = false;
@@ -9,8 +9,8 @@ export class GameClient {
     private widthVal: number;
     private heightVal: number;
     private remove: () => void = () => {};
-    private readonly pendingAnimations: Action[] = [];
-    private readonly currentAnimations: Action[]= [];
+    private readonly pendingAnimations: Action<Element>[] = [];
+    private readonly currentAnimations: Action<Element>[]= [];
     private readonly clickListeners: ((e: HitBoxEvent) => void)[] = [];
 
     public constructor(public readonly canvas: HTMLCanvasElement, public readonly ctx: CanvasRenderingContext2D, skin: Skin, width: number, height: number) {
@@ -87,7 +87,7 @@ export class GameClient {
         for (let i = 0; i < this.currentAnimations.length; i++) {
             console.log("doing current animation");
             const action = this.currentAnimations[i];
-            if (action.animation.isCompleted(time)) {
+            if (action.isCompleted(time)) {
                 action.complete();
                 this.currentAnimations.splice(i--, 1);
                 if (action.next !== undefined) {
@@ -95,14 +95,13 @@ export class GameClient {
                 }
             }
             else {
-                action.animation.draw(this.table.skin, time);
+                action.draw(time);
             }
         }
 
         for (let action of this.pendingAnimations) {
             console.log("processing pending animation");
-            action.start(time,
-                action.targetContainer.calculateChildPosition(action.targetIndex, this.table.skin));
+            action.start(time);
             this.currentAnimations.push(action);
         }
         this.pendingAnimations.length = 0;
@@ -110,12 +109,15 @@ export class GameClient {
         requestAnimationFrame(this.frame);
     }
 
-    public doAction(action: Action): void {
-        if (action.animation.duration === 0) {
+    public doAction(action: Action<Element>): void {
+        if (action.duration === 0) {
             action.complete();
             if (action.next !== undefined) {
                 this.doAction(action.next);
             }
+        }
+        else if (action.hasStarted) {
+            this.currentAnimations.push(action);
         }
         else {
             this.pendingAnimations.push(action);

@@ -15,6 +15,7 @@ export class Card extends Element {
     }
 
     public override draw(skin: Skin, position: NewPos) {
+        this.latest = position;
         // console.log("draw");
         skin.ctx.fillStyle = this.faceUp ? "white" : "darkred";
         if (this.glow) {

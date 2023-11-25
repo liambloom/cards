@@ -8,6 +8,7 @@ export class Card extends Element {
         this.face = new CardFace(value, suit);
     }
     draw(skin, position) {
+        this.latest = position;
         // console.log("draw");
         skin.ctx.fillStyle = this.faceUp ? "white" : "darkred";
         if (this.glow) {

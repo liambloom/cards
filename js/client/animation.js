@@ -20,6 +20,7 @@ export class GameAnimation {
         this.subject = subject;
         this.startTime = time;
         this.startPos = subject.latestPosition;
+        console.log(this.startPos);
         this.endPos = endPos;
     }
     isCompleted(time) {

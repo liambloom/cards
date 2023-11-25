@@ -2,10 +2,12 @@ import { Card, CardPile, CardPileCombiner, decks } from "../../common/cards.js";
 import cardDisplayInit from "../../client/cardDisplay.js";
 import { TableRow, TableSlot } from "../../common/table.js";
 import { GameClient } from "../../client/gameClient.js";
-import { Action } from "../../common/game.js";
-import { GameAnimation } from "../../client/animation.js";
+import { FlipAction, FlipDirection, MoveAction } from "../../common/game.js";
 const canvas = document.getElementById("game");
 let ctx = canvas.getContext("2d");
+// TODO: Current Issues
+// - Once a card has been moved, everything stops working, I think an infinite loop begins, but I don't know where or why it doesn't throw a StackOverflowError
+// - Animations always have a start position of (0, 0)
 const { baseSkin: skin } = cardDisplayInit(ctx);
 const easy = new URLSearchParams(location.search).get("easyMode") === "true" ? true : false;
 console.time();
@@ -27,6 +29,7 @@ for (let i = 0; i < 7; i++) {
 }
 const gameClient = new GameClient(canvas, ctx, skin, 1000, 1000);
 gameClient.table.children.push(gamePiles);
+window.gameClient = gameClient;
 let currentSelected = null;
 let currentMoves = [];
 gameClient.addClickListener(e => {
@@ -58,20 +61,53 @@ gameClient.addClickListener(e => {
         currentSelected = e.currentTarget;
         currentSelected.glow = "cyan";
         for (let pileContainer of gamePiles.children) {
-            let parent = gameClient.table;
-            let pile = pileContainer.content;
-            if (pile === null) {
+            const destPileCombiner = pileContainer.content;
+            // Keep pile combiner and both piles until all cards are gone, once all cards are gone, clear the slot
+            const destCardPile = destPileCombiner.children[1];
+            if (destCardPile.children.length === 0) {
                 continue;
             }
-            while (!(pile instanceof Card)) {
-                parent = pile;
-                pile = pile === null || pile === void 0 ? void 0 : pile.children[pile.children.length - 1];
-            }
-            if (pile.faceUp && pile.face.value.value === e.currentTarget.face.value.value + 1 && pile.face.suit.color !== e.currentTarget.face.suit.color) {
+            const destCard = destCardPile.children[destCardPile.children.length - 1];
+            if (destCard.faceUp && destCard.face.value.value === e.currentTarget.face.value.value + 1 && destCard.face.suit.color !== e.currentTarget.face.suit.color) {
                 if (easy) {
-                    pile.glow = "green";
+                    destCard.glow = "green";
                 }
-                currentMoves.push(new Action(new GameAnimation(n => n, 1000), e.targetStack[1], e.currentTarget, parent, parent.children.length, undefined));
+                const action = new MoveAction({
+                    timeFunction: n => n,
+                    duration: 1000,
+                    subjectContainer: e.targetStack[1],
+                    subject: e.currentTarget,
+                    targetContainer: destCardPile,
+                    targetIndex: destCardPile.children.length,
+                    skin: gameClient.table.skin,
+                    source: null,
+                });
+                const startCardPile = e.targetStack[1];
+                const startFaceDownCards = e.targetStack[2].children[0];
+                if (startCardPile.children.length === 1 && startFaceDownCards.children.length !== 0) {
+                    const subject = startFaceDownCards.children[startFaceDownCards.children.length - 1];
+                    action.next = new MoveAction({
+                        timeFunction: n => n,
+                        duration: 0,
+                        subjectContainer: startFaceDownCards,
+                        subject,
+                        targetContainer: startCardPile,
+                        targetIndex: 0,
+                        skin: gameClient.table.skin,
+                        source: null,
+                        next: new FlipAction({
+                            timeFunction: n => n,
+                            duration: 1000,
+                            subjectContainer: startCardPile,
+                            subject,
+                            skin: gameClient.table.skin,
+                            source: null,
+                            direction: FlipDirection.Vertical,
+                        }),
+                    });
+                }
+                // action.next = new Action();
+                currentMoves.push(action);
                 console.log(parent);
             }
         }

@@ -67,7 +67,7 @@ export class GameClient {
         for (let i = 0; i < this.currentAnimations.length; i++) {
             console.log("doing current animation");
             const action = this.currentAnimations[i];
-            if (action.animation.isCompleted(time)) {
+            if (action.isCompleted(time)) {
                 action.complete();
                 this.currentAnimations.splice(i--, 1);
                 if (action.next !== undefined) {
@@ -75,23 +75,26 @@ export class GameClient {
                 }
             }
             else {
-                action.animation.draw(this.table.skin, time);
+                action.draw(time);
             }
         }
         for (let action of this.pendingAnimations) {
             console.log("processing pending animation");
-            action.start(time, action.targetContainer.calculateChildPosition(action.targetIndex, this.table.skin));
+            action.start(time);
             this.currentAnimations.push(action);
         }
         this.pendingAnimations.length = 0;
         requestAnimationFrame(this.frame);
     }
     doAction(action) {
-        if (action.animation.duration === 0) {
+        if (action.duration === 0) {
             action.complete();
             if (action.next !== undefined) {
                 this.doAction(action.next);
             }
+        }
+        else if (action.hasStarted) {
+            this.currentAnimations.push(action);
         }
         else {
             this.pendingAnimations.push(action);
