@@ -2,7 +2,9 @@ import { Card, CardPile, CardPileCombiner, decks } from "../../common/cards.js";
 import cardDisplayInit from "../../client/cardDisplay.js";
 import { TableRow, TableSlot } from "../../common/table.js";
 import { GameClient } from "../../client/gameClient.js";
-import { FlipAction, FlipDirection, MoveAction } from "../../common/game.js";
+import { FlipAction, FlipDirection, MoveAction, TIME_FUNCTIONS } from "../../common/game.js";
+import { HoldingParent } from "../../common/display.js";
+const { linear } = TIME_FUNCTIONS;
 const canvas = document.getElementById("game");
 let ctx = canvas.getContext("2d");
 // TODO: Current Issues
@@ -11,13 +13,9 @@ let ctx = canvas.getContext("2d");
 const { baseSkin: skin } = cardDisplayInit(ctx);
 const easy = new URLSearchParams(location.search).get("easyMode") === "true" ? true : false;
 console.time();
-console.log("Making deck");
 const deck = decks.std52();
-console.log("Deck made");
 const gamePiles = new TableRow();
-console.log("shuffling deck");
 deck.shuffle();
-console.log("done shuffling");
 for (let i = 0; i < 7; i++) {
     const topCard = deck.children.pop();
     topCard.faceUp = true;
@@ -38,8 +36,6 @@ gameClient.addClickListener(e => {
     if (currentSelected && (e.target !== currentSelected || (selectionBlocker || (selectionBlocker = e.currentTarget === currentSelected)))) {
         if (e.currentTarget instanceof Card) {
             for (let move of currentMoves) {
-                console.log(e.currentTarget);
-                console.log(move.targetContainer.children[move.targetContainer.children.length - 1]);
                 if (e.currentTarget === move.targetContainer.children[move.targetContainer.children.length - 1]) {
                     gameClient.doAction(move);
                     selectionBlocker = true;
@@ -47,7 +43,6 @@ gameClient.addClickListener(e => {
                 }
             }
         }
-        console.log("clear");
         currentSelected.glow = null;
         currentSelected = null;
         if (easy) {
@@ -85,35 +80,42 @@ gameClient.addClickListener(e => {
                 const startFaceDownCards = e.targetStack[2].children[0];
                 if (startCardPile.children.length === 1 && startFaceDownCards.children.length !== 0) {
                     const subject = startFaceDownCards.children[startFaceDownCards.children.length - 1];
+                    const holding = new HoldingParent(subject);
                     action.next = new MoveAction({
-                        timeFunction: n => n,
-                        duration: 0,
+                        timeFunction: linear,
+                        duration: 1e-5,
                         subjectContainer: startFaceDownCards,
                         subject,
-                        targetContainer: startCardPile,
+                        targetContainer: holding,
                         targetIndex: 0,
                         skin: gameClient.table.skin,
                         source: null,
-                        next: new FlipAction({
-                            timeFunction: n => n,
-                            duration: 1000,
-                            subjectContainer: startCardPile,
+                        next: new MoveAction({
+                            timeFunction: linear,
+                            duration: 0,
+                            subjectContainer: holding,
                             subject,
+                            targetContainer: startCardPile,
+                            targetIndex: 0,
                             skin: gameClient.table.skin,
                             source: null,
-                            direction: FlipDirection.Vertical,
-                        }),
+                            next: new FlipAction({
+                                timeFunction: linear,
+                                duration: 1000,
+                                subjectContainer: startCardPile,
+                                subject,
+                                skin: gameClient.table.skin,
+                                source: null,
+                                direction: FlipDirection.Vertical,
+                            })
+                        })
                     });
                 }
                 // action.next = new Action();
                 currentMoves.push(action);
-                console.log(parent);
             }
         }
     }
     selectionBlocker = false;
 });
-console.log("drawing");
-console.log(canvas.width);
 gameClient.begin();
-console.log("done");

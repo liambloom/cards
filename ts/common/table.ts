@@ -26,7 +26,6 @@ export class Table extends Parent<TableLayoutElement> {
     }
 
     public draw(): void {
-        // console.log(this.skin);
         super.draw(this.skin, new NewPos(-1, -1));
     }
 }
@@ -89,7 +88,6 @@ export class TableSlot extends Element {
     }
 
     public override draw(skin: Skin, pos: NewPos): void {
-        // console.log("drawing slot containing " + this.contentVal);
         if (this.content !== null) {
             this.content.draw(skin, pos);
         }

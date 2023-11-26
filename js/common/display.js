@@ -45,7 +45,10 @@ export class Parent extends Element {
         this.updateListeners = [];
     }
     updateChildPositions(start = 0, end = this.children.length) {
-        this.childPositions = this.childPositions.slice(start, this.children.length);
+        // let insert: NewPos[] = [];
+        // insert.length = end - start;
+        // this.childPositions = this.childPositions.splice(start, end - start, ...insert);
+        this.childPositions = this.childPositions.slice(0, start);
         for (let listener of this.updateListeners) {
             listener(start, end);
         }
@@ -62,9 +65,8 @@ export class Parent extends Element {
         return true;
     }
     draw(skin, pos) {
-        // console.log("draw " + this.constructor);
         if (!pos.equals(this.latestPosition)) {
-            this.childPositions = [];
+            this.childPositions.length = 0;
         }
         this.latest = pos;
         for (let i = 0; i < this.children.length; i++) {
@@ -83,5 +85,25 @@ export class Parent extends Element {
             }
         }
         return null;
+    }
+    getChildPosition(index, skin) {
+        var _a;
+        return (_a = this.childPositions[index]) !== null && _a !== void 0 ? _a : this.calculateChildPosition(index, skin);
+    }
+}
+export class HoldingParent extends Parent {
+    constructor(child) {
+        super(new Proxy([], {
+            defineProperty(target, prop, descriptor) {
+                if (typeof prop === "string" && prop === "" + parseInt(prop) && (prop !== "0" || !(descriptor.value === child || typeof descriptor.get == "function" && descriptor.get() === child))) {
+                    throw new Error("HoldingParent is mean to hold one specific child in index 0, cannot add other children or children in other places");
+                }
+                return Reflect.defineProperty(target, prop, descriptor);
+            }
+        }));
+        this.child = child;
+    }
+    calculateChildPosition(index, skin) {
+        return this.child.latestPosition;
     }
 }

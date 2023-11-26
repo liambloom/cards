@@ -1,5 +1,5 @@
-import { HitBoxEvent, NewPos, Skin } from "../common/display.js";
-import { Action } from "../common/game.js";
+import { HitBoxEvent, HoldingParent, NewPos, Skin } from "../common/display.js";
+import { Action, MoveAction } from "../common/game.js";
 import { Table } from "../common/table.js";
 import { Element } from "../common/display.js";
 
@@ -23,7 +23,6 @@ export class GameClient {
         this.setCanvasSize();
 
         this.canvas.addEventListener("click", event => {
-            console.log("click");
             this.table.maybeClick(new NewPos(event.offsetX, event.offsetY), event2 => {
                 for (let listener of this.clickListeners) {
                     listener(event2);
@@ -51,7 +50,6 @@ export class GameClient {
     }
 
     private setCanvasSize() {
-        console.log("setting size");
         if (this.remove !== undefined) {
             this.remove();
         }
@@ -85,23 +83,21 @@ export class GameClient {
         this.table.draw();
 
         for (let i = 0; i < this.currentAnimations.length; i++) {
-            console.log("doing current animation");
             const action = this.currentAnimations[i];
+            action.draw(time);
             if (action.isCompleted(time)) {
                 action.complete();
                 this.currentAnimations.splice(i--, 1);
                 if (action.next !== undefined) {
-                    this.doAction(action.next);
+                    this.pendingAnimations.push(action.next);
                 }
-            }
-            else {
-                action.draw(time);
             }
         }
 
         for (let action of this.pendingAnimations) {
-            console.log("processing pending animation");
-            action.start(time);
+            if (!action.hasStarted) {
+                action.start(time);
+            }
             this.currentAnimations.push(action);
         }
         this.pendingAnimations.length = 0;

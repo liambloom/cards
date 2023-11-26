@@ -1,6 +1,10 @@
 // import { v4 as uuid } from "../../node_modules/uuid/dist/index.js";
 import { Card } from "./cards.js";
-import { NewPos, Parent, Element, Skin } from "./display.js";
+import { NewPos, Parent, Element, Skin, HitBoxEvent, PositionTreeUpdateListener } from "./display.js";
+
+export const TIME_FUNCTIONS = {
+    linear: (n: number) => n,
+} as const;
 
 export class Player {
     public readonly playerId: string = "";//uuid();
@@ -69,7 +73,7 @@ export abstract class Action<T extends Element> implements BaseActionData<T> {
             throw new Error("Cannot draw animation before it has started");
         }
     
-        this.drawProgress(this.timeFunction((time - this.startTime!) / this.duration!));
+        this.drawProgress(Math.max(0, Math.min(1,  this.timeFunction((time - this.startTime!) / this.duration!))));
     }
 
     public complete(): void {
@@ -79,6 +83,15 @@ export abstract class Action<T extends Element> implements BaseActionData<T> {
     }
 
     protected abstract drawProgress(progress: number): void;
+
+    protected removeSubjectFromContainer(): number {
+        let elements = this.subjectContainer.children;
+        let index = elements.indexOf(this.subject);
+        if (index != -1) {
+            elements.splice(index, 1);
+        }
+        return index;
+    }
 }
 
 export enum FlipDirection {
@@ -89,6 +102,7 @@ export enum FlipDirection {
 export class FlipAction extends Action<Card> {
     public readonly direction: FlipDirection;
     private targetFace?: boolean;
+    private indexInContainer?: number;
 
     public constructor(data: BaseActionData<Card> & { direction: FlipDirection }) {
         super(data);
@@ -96,13 +110,18 @@ export class FlipAction extends Action<Card> {
     }
 
     public override start(time: number) {
-        console.log(performance.now());
         super.start(time);
         this.targetFace = !this.subject.faceUp;
+        this.indexInContainer = this.removeSubjectFromContainer();
     }
 
     public override complete() {
-        console.log(performance.now());
+        if (this.hasStarted) {
+            this.subjectContainer.children.splice(this.indexInContainer!, 0, this.subject);
+        }
+        else {
+            this.targetFace = !this.subject.faceUp;
+        }
         this.subject.faceUp = this.targetFace!;
         super.complete();
     }
@@ -125,11 +144,28 @@ export class FlipAction extends Action<Card> {
         }
         this.skin.ctx.translate(-this.subject!.latestPosition.x, -this.subject!.latestPosition.y);
 
-        this.subject!.draw(this.skin, this.subject.latestPosition);
+        this.subject!.draw(this.skin, this.subjectContainer.getChildPosition(this.indexInContainer!, this.skin));
 
         this.skin.ctx.setTransform(origTransform);
     }
 }
+
+// export class HoldAction<T extends Element> extends Action<T> {
+//     public override start(time: number) {
+//         super.start(time);
+//         let elements = this.subjectContainer.children;
+//         this.removeSubjectFromContainer();
+//     }
+
+//     public override complete() {
+//         this.removeSubjectFromContainer();
+//         super.complete();
+//     }
+
+//     protected override drawProgress(progress: number): void {
+//         this.subject!.draw(this.skin, this.subject!.latestPosition);
+//     }
+// }
 
 export class MoveAction<T extends Element> extends Action<T> {
     public readonly targetContainer: Parent<T>;
@@ -148,14 +184,6 @@ export class MoveAction<T extends Element> extends Action<T> {
         }
         this.targetContainer = data.targetContainer;
         this.targetIndex = data.targetIndex;
-    }
-
-    private removeSubjectFromContainer() {
-        let elements = this.subjectContainer.children;
-        let index = elements.indexOf(this.subject);
-        if (index != -1) {
-            elements.splice(index, 1);
-        }
     }
 
     public override start(time: number) {

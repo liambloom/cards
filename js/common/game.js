@@ -1,4 +1,7 @@
 import { NewPos, Parent } from "./display.js";
+export const TIME_FUNCTIONS = {
+    linear: (n) => n,
+};
 export class Player {
     constructor() {
         this.playerId = ""; //uuid();
@@ -38,12 +41,20 @@ export class Action {
         if (this.startTime === undefined) {
             throw new Error("Cannot draw animation before it has started");
         }
-        this.drawProgress(this.timeFunction((time - this.startTime) / this.duration));
+        this.drawProgress(Math.max(0, Math.min(1, this.timeFunction((time - this.startTime) / this.duration))));
     }
     complete() {
         if (this.next !== undefined) {
             this.next.start(this.startTime + this.duration);
         }
+    }
+    removeSubjectFromContainer() {
+        let elements = this.subjectContainer.children;
+        let index = elements.indexOf(this.subject);
+        if (index != -1) {
+            elements.splice(index, 1);
+        }
+        return index;
     }
 }
 export var FlipDirection;
@@ -57,12 +68,17 @@ export class FlipAction extends Action {
         this.direction = data.direction;
     }
     start(time) {
-        console.log(performance.now());
         super.start(time);
         this.targetFace = !this.subject.faceUp;
+        this.indexInContainer = this.removeSubjectFromContainer();
     }
     complete() {
-        console.log(performance.now());
+        if (this.hasStarted) {
+            this.subjectContainer.children.splice(this.indexInContainer, 0, this.subject);
+        }
+        else {
+            this.targetFace = !this.subject.faceUp;
+        }
         this.subject.faceUp = this.targetFace;
         super.complete();
     }
@@ -82,10 +98,24 @@ export class FlipAction extends Action {
             this.skin.ctx.scale(1, scale);
         }
         this.skin.ctx.translate(-this.subject.latestPosition.x, -this.subject.latestPosition.y);
-        this.subject.draw(this.skin, this.subject.latestPosition);
+        this.subject.draw(this.skin, this.subjectContainer.getChildPosition(this.indexInContainer, this.skin));
         this.skin.ctx.setTransform(origTransform);
     }
 }
+// export class HoldAction<T extends Element> extends Action<T> {
+//     public override start(time: number) {
+//         super.start(time);
+//         let elements = this.subjectContainer.children;
+//         this.removeSubjectFromContainer();
+//     }
+//     public override complete() {
+//         this.removeSubjectFromContainer();
+//         super.complete();
+//     }
+//     protected override drawProgress(progress: number): void {
+//         this.subject!.draw(this.skin, this.subject!.latestPosition);
+//     }
+// }
 export class MoveAction extends Action {
     constructor(data) {
         super(data);
@@ -95,13 +125,6 @@ export class MoveAction extends Action {
         }
         this.targetContainer = data.targetContainer;
         this.targetIndex = data.targetIndex;
-    }
-    removeSubjectFromContainer() {
-        let elements = this.subjectContainer.children;
-        let index = elements.indexOf(this.subject);
-        if (index != -1) {
-            elements.splice(index, 1);
-        }
     }
     start(time) {
         super.start(time);

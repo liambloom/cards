@@ -9,7 +9,6 @@ export class Card extends Element {
     }
     draw(skin, position) {
         this.latest = position;
-        // console.log("draw");
         skin.ctx.fillStyle = this.faceUp ? "white" : "darkred";
         if (this.glow) {
             skin.ctx.shadowColor = this.glow;
@@ -98,16 +97,29 @@ Suit.Diamonds = new Suit("Diamonds", "\u2662", Color.Red);
 Suit.Clubs = new Suit("Clubs", "\u2663", Color.Black);
 Suit.values = [_b.Spades, _b.Hearts, _b.Diamonds, _b.Clubs];
 export class CardPile extends Parent {
-    constructor(cards = [], cardSpacing = 0, cardAngle = 0) {
+    constructor(cards = [], cardSpacingInner = 0, cardAngleInner = 0) {
         super(cards);
-        this.cardSpacing = cardSpacing;
-        this.cardAngle = cardAngle;
+        this.cardSpacingInner = cardSpacingInner;
+        this.cardAngleInner = cardAngleInner;
+    }
+    get cardSpacing() {
+        return this.cardSpacingInner;
+    }
+    set cardSpacing(value) {
+        this.cardSpacingInner = value;
+        this.updateChildPositions(1);
+    }
+    get cardAngle() {
+        return this.cardAngleInner;
+    }
+    set cardAngle(value) {
+        this.cardAngleInner = value;
+        this.updateChildPositions(1);
     }
     shuffle() {
         // https://stackoverflow.com/a/12646864/11326662
         for (let i = this.children.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            // console.log(`Shuffling: i=${i}, j=${j}`);
             [this.children[i], this.children[j]] = [this.children[j], this.children[i]];
         }
     }
@@ -128,13 +140,17 @@ export class CardPileCombiner extends Parent {
     //         this.updateChildPositions(index);
     //     });
     // }
+    draw(skin, pos) {
+        this.updateChildPositions();
+        super.draw(skin, pos);
+    }
     calculateChildPosition(index, skin) {
         if (index === 0) {
             return this.latestPosition;
         }
         else {
             const under = this.children[index - 1];
-            return under.calculateChildPosition(under.children.length);
+            return under.getChildPosition(under.children.length, skin);
         }
     }
 }

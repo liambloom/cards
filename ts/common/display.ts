@@ -70,8 +70,11 @@ export abstract class Parent<C extends Element> extends Element {
         super();
     }
 
-    protected updateChildPositions(start: number = 0, end: number = this.children.length): void {
-        this.childPositions = this.childPositions.slice(start, this.children.length);
+    public updateChildPositions(start: number = 0, end: number = this.children.length): void {
+        // let insert: NewPos[] = [];
+        // insert.length = end - start;
+        // this.childPositions = this.childPositions.splice(start, end - start, ...insert);
+        this.childPositions = this.childPositions.slice(0, start);
 
         for (let listener of this.updateListeners) {
             listener(start, end);
@@ -92,9 +95,8 @@ export abstract class Parent<C extends Element> extends Element {
     }
 
     public override draw(skin: Skin, pos: NewPos) {
-        // console.log("draw " + this.constructor);
         if (!pos.equals(this.latestPosition)) {
-            this.childPositions = [];
+            this.childPositions.length = 0;
         }
         this.latest = pos;
 
@@ -118,8 +120,29 @@ export abstract class Parent<C extends Element> extends Element {
         return null;
     }
 
+    public getChildPosition(index: number, skin: Skin): NewPos {
+        return this.childPositions[index] ?? this.calculateChildPosition(index, skin);
+    }
+
     /// This is calculated for each element in the tree lazily, depth-first. It can only be reliable called
     /// during a call to the draw() method. Because it is depth-first, earlier children, earlier siblings, and
     /// children of those siblings will be accurate if you call this method during the drawing process.
     public abstract calculateChildPosition(index: number, skin: Skin): NewPos;
+}
+
+export class HoldingParent<T extends Element> extends Parent<T> {
+    public constructor(private readonly child: T) {
+        super(new Proxy([], {
+            defineProperty(target, prop, descriptor) {
+                if (typeof prop === "string" && prop === "" + parseInt(prop) && (prop !== "0" || !(descriptor.value === child || typeof descriptor.get == "function" && descriptor.get() === child))) {
+                    throw new Error("HoldingParent is mean to hold one specific child in index 0, cannot add other children or children in other places");
+                }
+                return Reflect.defineProperty(target, prop, descriptor);
+            }
+        }));
+    }
+
+    public override calculateChildPosition(index: number, skin: Skin): NewPos {
+        return this.child.latestPosition;
+    }
 }

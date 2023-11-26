@@ -16,7 +16,6 @@ export class Card extends Element {
 
     public override draw(skin: Skin, position: NewPos) {
         this.latest = position;
-        // console.log("draw");
         skin.ctx.fillStyle = this.faceUp ? "white" : "darkred";
         if (this.glow) {
             skin.ctx.shadowColor = this.glow;
@@ -123,17 +122,34 @@ export class Suit {
 export class CardPile extends Parent<Card> {
     public constructor (
         cards: Card[] = [], 
-        public cardSpacing: number = 0, 
-        public cardAngle: number = 0,
+        private cardSpacingInner: number = 0, 
+        private cardAngleInner: number = 0,
     ) {
         super(cards);
+    }
+
+    public get cardSpacing(): number {
+        return this.cardSpacingInner;
+    }
+
+    public set cardSpacing(value: number) {
+        this.cardSpacingInner = value;
+        this.updateChildPositions(1);
+    }
+
+    public get cardAngle(): number {
+        return this.cardAngleInner;
+    }
+
+    public set cardAngle(value: number) {
+        this.cardAngleInner = value;
+        this.updateChildPositions(1);
     }
 
     public shuffle() {
         // https://stackoverflow.com/a/12646864/11326662
         for (let i = this.children.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            // console.log(`Shuffling: i=${i}, j=${j}`);
             [this.children[i], this.children[j]] = [this.children[j], this.children[i]];
         }
     }
@@ -158,13 +174,18 @@ export class CardPileCombiner extends Parent<CardPile> {
     //     });
     // }
 
+    public override draw(skin: Skin, pos: NewPos): void {
+        this.updateChildPositions();
+        super.draw(skin, pos);
+    }
+
     public override calculateChildPosition(index: number, skin: Skin): NewPos {
         if (index === 0) {
             return this.latestPosition;
         }
         else {
             const under = this.children[index - 1];
-            return under.calculateChildPosition(under.children.length);
+            return under.getChildPosition(under.children.length, skin);
         }
     }
 }

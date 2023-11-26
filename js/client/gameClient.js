@@ -16,7 +16,6 @@ export class GameClient {
         this.frame = this.frame.bind(this);
         this.setCanvasSize();
         this.canvas.addEventListener("click", event => {
-            console.log("click");
             this.table.maybeClick(new NewPos(event.offsetX, event.offsetY), event2 => {
                 for (let listener of this.clickListeners) {
                     listener(event2);
@@ -39,7 +38,6 @@ export class GameClient {
         this.setCanvasSize();
     }
     setCanvasSize() {
-        console.log("setting size");
         if (this.remove !== undefined) {
             this.remove();
         }
@@ -65,22 +63,20 @@ export class GameClient {
         this.ctx.clearRect(0, 0, this.width, this.height);
         this.table.draw();
         for (let i = 0; i < this.currentAnimations.length; i++) {
-            console.log("doing current animation");
             const action = this.currentAnimations[i];
+            action.draw(time);
             if (action.isCompleted(time)) {
                 action.complete();
                 this.currentAnimations.splice(i--, 1);
                 if (action.next !== undefined) {
-                    this.doAction(action.next);
+                    this.pendingAnimations.push(action.next);
                 }
-            }
-            else {
-                action.draw(time);
             }
         }
         for (let action of this.pendingAnimations) {
-            console.log("processing pending animation");
-            action.start(time);
+            if (!action.hasStarted) {
+                action.start(time);
+            }
             this.currentAnimations.push(action);
         }
         this.pendingAnimations.length = 0;

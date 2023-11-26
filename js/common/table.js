@@ -18,7 +18,6 @@ export class Table extends Parent {
         }
     }
     draw() {
-        // console.log(this.skin);
         super.draw(this.skin, new NewPos(-1, -1));
     }
 }
@@ -65,7 +64,6 @@ export class TableSlot extends Element {
         return (_b = (_a = this.contentVal) === null || _a === void 0 ? void 0 : _a.maybeClick(pos, callback, targetStack)) !== null && _b !== void 0 ? _b : null;
     }
     draw(skin, pos) {
-        // console.log("drawing slot containing " + this.contentVal);
         if (this.content !== null) {
             this.content.draw(skin, pos);
         }
