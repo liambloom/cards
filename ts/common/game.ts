@@ -1,6 +1,6 @@
 // import { v4 as uuid } from "../../node_modules/uuid/dist/index.js";
 import { Card } from "./cards.js";
-import { NewPos, Parent, Element, Skin, HitBoxEvent, PositionTreeUpdateListener } from "./display.js";
+import { NewPos, Parent, Element, Skin, HitBoxEvent, PositionTreeUpdateListener, HoldingParent } from "./display.js";
 
 export const TIME_FUNCTIONS = {
     linear: (n: number) => n,
@@ -202,5 +202,15 @@ export class MoveAction<T extends Element> extends Action<T> {
     public override drawProgress(progress: number): void {
         this.subject!.draw(this.skin, new NewPos((this.endPos!.x - this.startPos!.x) * progress + this.startPos!.x,
             (this.endPos!.y - this.startPos!.y) * progress + this.startPos!.y));
+    }
+
+    public static holdingBufferAction<T extends Element>(data: Omit<BaseActionData<T>, "targetContainer" | "targetIndex" | "timeFunction" | "duration">) {
+        return new MoveAction({
+            ...data,
+            targetContainer: new HoldingParent(data.subject),
+            targetIndex: 0,
+            timeFunction: TIME_FUNCTIONS.linear,
+            duration: 1e-5
+        });
     }
 }

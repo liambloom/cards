@@ -1,4 +1,4 @@
-import { NewPos, Parent } from "./display.js";
+import { NewPos, Parent, HoldingParent } from "./display.js";
 export const TIME_FUNCTIONS = {
     linear: (n) => n,
 };
@@ -139,5 +139,8 @@ export class MoveAction extends Action {
     }
     drawProgress(progress) {
         this.subject.draw(this.skin, new NewPos((this.endPos.x - this.startPos.x) * progress + this.startPos.x, (this.endPos.y - this.startPos.y) * progress + this.startPos.y));
+    }
+    static holdingBufferAction(data) {
+        return new MoveAction(Object.assign(Object.assign({}, data), { targetContainer: new HoldingParent(data.subject), targetIndex: 0, timeFunction: TIME_FUNCTIONS.linear, duration: 1e-5 }));
     }
 }

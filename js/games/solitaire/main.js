@@ -3,13 +3,10 @@ import cardDisplayInit from "../../client/cardDisplay.js";
 import { TableRow, TableSlot } from "../../common/table.js";
 import { GameClient } from "../../client/gameClient.js";
 import { FlipAction, FlipDirection, MoveAction, TIME_FUNCTIONS } from "../../common/game.js";
-import { HoldingParent } from "../../common/display.js";
 const { linear } = TIME_FUNCTIONS;
 const canvas = document.getElementById("game");
 let ctx = canvas.getContext("2d");
-// TODO: Current Issues
-// - Once a card has been moved, everything stops working, I think an infinite loop begins, but I don't know where or why it doesn't throw a StackOverflowError
-// - Animations always have a start position of (0, 0)
+// TODO: Fix card movement. Currently only moves one card, even if it has cards on top of it
 const { baseSkin: skin } = cardDisplayInit(ctx);
 const easy = new URLSearchParams(location.search).get("easyMode") === "true" ? true : false;
 console.time();
@@ -80,34 +77,29 @@ gameClient.addClickListener(e => {
                 const startFaceDownCards = e.targetStack[2].children[0];
                 if (startCardPile.children.length === 1 && startFaceDownCards.children.length !== 0) {
                     const subject = startFaceDownCards.children[startFaceDownCards.children.length - 1];
-                    const holding = new HoldingParent(subject);
-                    action.next = new MoveAction({
-                        timeFunction: linear,
-                        duration: 1e-5,
+                    const action2 = action.next = MoveAction.holdingBufferAction({
                         subjectContainer: startFaceDownCards,
                         subject,
-                        targetContainer: holding,
+                        skin: gameClient.table.skin,
+                        source: null
+                    });
+                    action2.next = new MoveAction({
+                        timeFunction: linear,
+                        duration: 0,
+                        subjectContainer: action2.targetContainer,
+                        subject,
+                        targetContainer: startCardPile,
                         targetIndex: 0,
                         skin: gameClient.table.skin,
                         source: null,
-                        next: new MoveAction({
+                        next: new FlipAction({
                             timeFunction: linear,
-                            duration: 0,
-                            subjectContainer: holding,
+                            duration: 1000,
+                            subjectContainer: startCardPile,
                             subject,
-                            targetContainer: startCardPile,
-                            targetIndex: 0,
                             skin: gameClient.table.skin,
                             source: null,
-                            next: new FlipAction({
-                                timeFunction: linear,
-                                duration: 1000,
-                                subjectContainer: startCardPile,
-                                subject,
-                                skin: gameClient.table.skin,
-                                source: null,
-                                direction: FlipDirection.Vertical,
-                            })
+                            direction: FlipDirection.Vertical,
                         })
                     });
                 }

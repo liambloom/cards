@@ -97,20 +97,16 @@ gameClient.addClickListener(e => {
                 const startFaceDownCards = (e.targetStack[2] as CardPileCombiner).children[0];
                 if (startCardPile.children.length === 1 && startFaceDownCards.children.length !== 0) {
                     const subject = startFaceDownCards.children[startFaceDownCards.children.length - 1];
-                    const holding = new HoldingParent(subject);
-                    action.next = new MoveAction({
-                        timeFunction: linear,
-                        duration: 1e-5,
+                    const action2 = action.next = MoveAction.holdingBufferAction({
                         subjectContainer: startFaceDownCards,
                         subject,
-                        targetContainer: holding,
-                        targetIndex: 0,
                         skin: gameClient.table.skin,
-                        source: null,
-                    next: new MoveAction({
+                        source: null
+                    });
+                    action2.next = new MoveAction({
                         timeFunction: linear,
                         duration: 0,
-                        subjectContainer: holding,
+                        subjectContainer: action2.targetContainer,
                         subject,
                         targetContainer: startCardPile,
                         targetIndex: 0,
@@ -124,7 +120,7 @@ gameClient.addClickListener(e => {
                         skin: gameClient.table.skin,
                         source: null,
                         direction: FlipDirection.Vertical,
-                    })})});
+                    })});
                     
                 }
                 // action.next = new Action();
