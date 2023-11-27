@@ -1,15 +1,10 @@
-import { NewPos, Parent, HoldingParent } from "./display.js";
+import { NewPos, HoldingParent } from "./display.js";
 export const TIME_FUNCTIONS = {
     linear: (n) => n,
 };
 export class Player {
     constructor() {
         this.playerId = ""; //uuid();
-    }
-}
-export class TheVoid extends Parent {
-    calculateChildPosition(index, skin) {
-        throw new Error("Elements in the void have no position");
     }
 }
 export class Action {
@@ -118,27 +113,47 @@ export class FlipAction extends Action {
 // }
 export class MoveAction extends Action {
     constructor(data) {
-        super(data);
-        if ((data.subjectContainer instanceof TheVoid || data.targetContainer instanceof TheVoid) && data.duration !== 0) {
-            throw new Error(`Attempted to move ${data.subject} ${data.subjectContainer instanceof TheVoid ? "from" : "into"}`
-                + ` with an animation of duration ${data.duration}, you must use animation with duration 0`);
-        }
+        var _a;
+        var _b;
+        super(((_a = (_b = data).duration) !== null && _a !== void 0 ? _a : (_b.duration = NaN), data));
         this.targetContainer = data.targetContainer;
         this.targetIndex = data.targetIndex;
+        this.speed = data.speed;
     }
     start(time) {
+        console.log("Move started");
         super.start(time);
         this.removeSubjectFromContainer();
-        this.startPos = this.subject.latestPosition;
-        this.endPos = this.targetContainer.calculateChildPosition(this.targetIndex, this.skin);
+    }
+    isCompleted(time) {
+        return !isNaN(this.duration) && super.isCompleted(time);
     }
     complete() {
         this.removeSubjectFromContainer();
         this.targetContainer.children.splice(this.targetIndex, 0, this.subject);
         super.complete();
     }
+    draw(time) {
+        if (this.startPos === undefined) {
+            this.startPos = this.subject.latestPosition;
+            this.endPos = this.targetContainer.calculateChildPosition(this.targetIndex, this.skin);
+            if (this.speed !== undefined) {
+                let duration = Math.sqrt(Math.pow(this.endPos.x - this.startPos.x, 2) + Math.pow(this.endPos.y - this.startPos.y, 2)) / this.speed;
+                if (!isNaN(this.duration) && this.duration !== duration) {
+                    throw new Error("Duration and speed were both defined, but mismatch");
+                }
+                else {
+                    this.duration = duration;
+                }
+                console.log(this.duration);
+            }
+        }
+        super.draw(time);
+    }
     drawProgress(progress) {
+        console.log("Drawing move:" + performance.now());
         this.subject.draw(this.skin, new NewPos((this.endPos.x - this.startPos.x) * progress + this.startPos.x, (this.endPos.y - this.startPos.y) * progress + this.startPos.y));
+        console.log("Move drawn " + performance.now());
     }
     static holdingBufferAction(data) {
         return new MoveAction(Object.assign(Object.assign({}, data), { targetContainer: new HoldingParent(data.subject), targetIndex: 0, timeFunction: TIME_FUNCTIONS.linear, duration: 1e-5 }));

@@ -8,6 +8,9 @@ export class Card extends Element {
         this.face = new CardFace(value, suit);
     }
     draw(skin, position) {
+        if (window.debugPrint) {
+            console.log(`Card drawn @ (${position.x}, ${position.y})`);
+        }
         this.latest = position;
         skin.ctx.fillStyle = this.faceUp ? "white" : "darkred";
         if (this.glow) {
@@ -25,6 +28,9 @@ export class Card extends Element {
             skin.ctx.fillText(this.face.value.symbol + this.face.suit.symbol, position.x + 10, position.y + 10);
         }
         this.latestHitbox = new Rectangle(position, skin.cardWidth, skin.cardHeight);
+        if (window.debugPrint) {
+            console.log("Card drawn end");
+        }
     }
     maybeClick(pos, callback, targetStack) {
         var _c;

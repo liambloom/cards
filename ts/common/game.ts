@@ -14,12 +14,6 @@ export class Player {
     }
 }
 
-export class TheVoid extends Parent<Element> {
-    public calculateChildPosition(index: number, skin: Skin): NewPos {
-        throw new Error("Elements in the void have no position");
-    }
-}
-
 export interface BaseActionData<T extends Element> {
     subject: T;
     subjectContainer: Parent<T>,
@@ -170,27 +164,28 @@ export class FlipAction extends Action<Card> {
 export class MoveAction<T extends Element> extends Action<T> {
     public readonly targetContainer: Parent<T>;
     public readonly targetIndex: number;
+    public readonly speed?: number;
     private startPos?: NewPos;
     private endPos?: NewPos;
 
-    public constructor(data: BaseActionData<T> & {
+    public constructor(data: (BaseActionData<T> | Omit<BaseActionData<T>, "duration"> & { speed: number }) & {
         targetContainer: Parent<T>,
         targetIndex: number,
     }) {
-        super(data);
-        if ((data.subjectContainer instanceof TheVoid || data.targetContainer instanceof TheVoid) && data.duration !== 0) {
-            throw new Error(`Attempted to move ${data.subject} ${data.subjectContainer instanceof TheVoid ? "from" : "into"}`
-                + ` with an animation of duration ${data.duration}, you must use animation with duration 0`);
-        }
+        super(((data as BaseActionData<T>).duration ??= NaN, data as BaseActionData<T>));
         this.targetContainer = data.targetContainer;
         this.targetIndex = data.targetIndex;
+        this.speed = (data as unknown as { speed: number }).speed;
     }
 
     public override start(time: number) {
+        console.log("Move started");
         super.start(time);
         this.removeSubjectFromContainer();
-        this.startPos = this.subject.latestPosition;
-        this.endPos = this.targetContainer.calculateChildPosition(this.targetIndex, this.skin);
+    }
+
+    public override isCompleted(time: number): boolean {
+        return !isNaN(this.duration) && super.isCompleted(time);
     }
 
     public override complete() {
@@ -199,9 +194,31 @@ export class MoveAction<T extends Element> extends Action<T> {
         super.complete();
     }
 
+    public override draw(time: number): void {
+        if (this.startPos === undefined) {  
+            this.startPos = this.subject.latestPosition;
+            this.endPos = this.targetContainer.calculateChildPosition(this.targetIndex, this.skin);
+            if (this.speed !== undefined) {           
+                let duration = Math.sqrt(Math.pow(this.endPos.x - this.startPos.x, 2) + Math.pow(this.endPos.y - this.startPos.y, 2)) / this.speed;
+                if (!isNaN(this.duration) && this.duration !== duration) {
+                    throw new Error("Duration and speed were both defined, but mismatch");
+                }
+                else {
+                    (this.duration as number) = duration;
+                }
+                console.log(this.duration);
+            }
+        }
+
+        super.draw(time);
+    }
+
     public override drawProgress(progress: number): void {
+        console.log("Drawing move:" + performance.now());
+        
         this.subject!.draw(this.skin, new NewPos((this.endPos!.x - this.startPos!.x) * progress + this.startPos!.x,
             (this.endPos!.y - this.startPos!.y) * progress + this.startPos!.y));
+        console.log("Move drawn " + performance.now());
     }
 
     public static holdingBufferAction<T extends Element>(data: Omit<BaseActionData<T>, "targetContainer" | "targetIndex" | "timeFunction" | "duration">) {

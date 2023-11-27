@@ -9,6 +9,7 @@ export class GameClient {
         this.pendingAnimations = [];
         this.currentAnimations = [];
         this.clickListeners = [];
+        this.skippedFrames = 0;
         this.widthVal = width;
         this.heightVal = height;
         this.table = new Table([], skin);
@@ -60,18 +61,27 @@ export class GameClient {
         }
     }
     frame(time) {
+        // time = time / ;
+        // if ()
+        if (this.currentAnimations.length || this.pendingAnimations.length) {
+            console.log("frame start: " + performance.now());
+        }
         this.ctx.clearRect(0, 0, this.width, this.height);
-        this.table.draw();
+        this.ctx.fillStyle = "#FF6666";
+        this.ctx.fillRect(0, 0, this.width, this.height);
         for (let i = 0; i < this.currentAnimations.length; i++) {
             const action = this.currentAnimations[i];
-            action.draw(time);
             if (action.isCompleted(time)) {
                 action.complete();
                 this.currentAnimations.splice(i--, 1);
                 if (action.next !== undefined) {
-                    this.pendingAnimations.push(action.next);
+                    this.doAction(action.next);
                 }
             }
+        }
+        this.table.draw();
+        for (let i = 0; i < this.currentAnimations.length; i++) {
+            this.currentAnimations[i].draw(time);
         }
         for (let action of this.pendingAnimations) {
             if (!action.hasStarted) {
@@ -80,6 +90,9 @@ export class GameClient {
             this.currentAnimations.push(action);
         }
         this.pendingAnimations.length = 0;
+        if (this.currentAnimations.length || this.pendingAnimations.length) {
+            console.log("frame end: " + performance.now());
+        }
         requestAnimationFrame(this.frame);
     }
     doAction(action) {

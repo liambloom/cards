@@ -78,13 +78,14 @@ gameClient.addClickListener(e => {
 
             const destCard = destCardPile.children[destCardPile.children.length - 1];
 
-            if (destCard.faceUp && destCard.face.value.value === e.currentTarget.face.value.value + 1 && destCard.face.suit.color !== e.currentTarget.face.suit.color) {
+            if (destCard.faceUp /*&& destCard.face.value.value === e.currentTarget.face.value.value + 1 && destCard.face.suit.color !== e.currentTarget.face.suit.color*/) {
                 if (easy) {
                     destCard.glow = "green";
                 }
                 const action = new MoveAction({
                     timeFunction: n => n,
-                    duration: 700, 
+                    // duration: 700,
+                    speed: 0.7,
                     subjectContainer: e.targetStack[1] as Parent<Card>, 
                     subject: e.currentTarget, 
                     targetContainer: destCardPile, 
@@ -97,16 +98,10 @@ gameClient.addClickListener(e => {
                 const startFaceDownCards = (e.targetStack[2] as CardPileCombiner).children[0];
                 if (startCardPile.children.length === 1 && startFaceDownCards.children.length !== 0) {
                     const subject = startFaceDownCards.children[startFaceDownCards.children.length - 1];
-                    const action2 = action.next = MoveAction.holdingBufferAction({
-                        subjectContainer: startFaceDownCards,
-                        subject,
-                        skin: gameClient.table.skin,
-                        source: null
-                    });
-                    action2.next = new MoveAction({
+                    action.next = new MoveAction({
                         timeFunction: linear,
                         duration: 0,
-                        subjectContainer: action2.targetContainer,
+                        subjectContainer: startFaceDownCards,
                         subject,
                         targetContainer: startCardPile,
                         targetIndex: 0,
