@@ -63,9 +63,6 @@ export class GameClient {
     frame(time) {
         // time = time / ;
         // if ()
-        if (this.currentAnimations.length || this.pendingAnimations.length) {
-            console.log("frame start: " + performance.now());
-        }
         this.ctx.clearRect(0, 0, this.width, this.height);
         this.ctx.fillStyle = "#FF6666";
         this.ctx.fillRect(0, 0, this.width, this.height);
@@ -90,9 +87,6 @@ export class GameClient {
             this.currentAnimations.push(action);
         }
         this.pendingAnimations.length = 0;
-        if (this.currentAnimations.length || this.pendingAnimations.length) {
-            console.log("frame end: " + performance.now());
-        }
         requestAnimationFrame(this.frame);
     }
     doAction(action) {

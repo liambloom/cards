@@ -4,6 +4,7 @@ import { TableRow, TableSlot } from "../../common/table.js";
 import { GameClient } from "../../client/gameClient.js";
 import { FlipAction, FlipDirection, MoveAction, TIME_FUNCTIONS } from "../../common/game.js";
 const { linear } = TIME_FUNCTIONS;
+const CARD_MOVE_SPEED = 0.7;
 const canvas = document.getElementById("game");
 let ctx = canvas.getContext("2d");
 // TODO: Fix card movement. Currently only moves one card, even if it has cards on top of it
@@ -33,8 +34,11 @@ gameClient.addClickListener(e => {
     if (currentSelected && (e.target !== currentSelected || (selectionBlocker || (selectionBlocker = e.currentTarget === currentSelected)))) {
         if (e.currentTarget instanceof Card) {
             for (let move of currentMoves) {
-                if (e.currentTarget === move.targetContainer.children[move.targetContainer.children.length - 1]) {
-                    gameClient.doAction(move);
+                if (e.currentTarget === move.mainAction.targetContainer.children[move.mainAction.targetContainer.children.length - 1]) {
+                    gameClient.doAction(move.mainAction);
+                    for (let action of move.otherActions) {
+                        gameClient.doAction(action);
+                    }
                     selectionBlocker = true;
                     break;
                 }
@@ -44,7 +48,7 @@ gameClient.addClickListener(e => {
         currentSelected = null;
         if (easy) {
             for (let move of currentMoves) {
-                move.targetContainer.children[move.targetContainer.children.length - 1].glow = null;
+                move.mainAction.targetContainer.children[move.mainAction.targetContainer.children.length - 1].glow = null;
             }
         }
         currentMoves.length = 0;
@@ -63,20 +67,20 @@ gameClient.addClickListener(e => {
                 if (easy) {
                     destCard.glow = "green";
                 }
+                const startCardPile = e.targetStack[1];
                 const action = new MoveAction({
-                    timeFunction: n => n,
+                    timeFunction: linear,
                     // duration: 700,
-                    speed: 0.7,
-                    subjectContainer: e.targetStack[1],
+                    speed: CARD_MOVE_SPEED,
+                    subjectContainer: startCardPile,
                     subject: e.currentTarget,
                     targetContainer: destCardPile,
                     targetIndex: destCardPile.children.length,
                     skin: gameClient.table.skin,
                     source: null,
                 });
-                const startCardPile = e.targetStack[1];
                 const startFaceDownCards = e.targetStack[2].children[0];
-                if (startCardPile.children.length === 1 && startFaceDownCards.children.length !== 0) {
+                if (startCardPile.children.indexOf(e.currentTarget) === 0 && startFaceDownCards.children.length !== 0) {
                     const subject = startFaceDownCards.children[startFaceDownCards.children.length - 1];
                     action.next = new MoveAction({
                         timeFunction: linear,
@@ -99,7 +103,23 @@ gameClient.addClickListener(e => {
                     });
                 }
                 // action.next = new Action();
-                currentMoves.push(action);
+                const otherActions = [];
+                for (let i = startCardPile.children.indexOf(e.currentTarget) + 1, j = 1; i < startCardPile.children.length; i++, j++) {
+                    otherActions.push(new MoveAction({
+                        timeFunction: linear,
+                        speed: CARD_MOVE_SPEED,
+                        subjectContainer: startCardPile,
+                        subject: startCardPile.children[i],
+                        targetContainer: destCardPile,
+                        targetIndex: destCardPile.children.length + j,
+                        skin: gameClient.table.skin,
+                        source: null,
+                    }));
+                }
+                currentMoves.push({
+                    mainAction: action,
+                    otherActions,
+                });
             }
         }
     }

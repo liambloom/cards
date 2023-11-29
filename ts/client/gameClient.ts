@@ -83,10 +83,6 @@ export class GameClient {
     private frame(time: number) {
         // time = time / ;
         // if ()
-
-        if (this.currentAnimations.length || this.pendingAnimations.length) {
-            console.log("frame start: " + performance.now());
-        }
         this.ctx.clearRect(0, 0, this.width, this.height);
 
         this.ctx.fillStyle = "#FF6666"
@@ -117,10 +113,6 @@ export class GameClient {
             this.currentAnimations.push(action);
         }
         this.pendingAnimations.length = 0;
-
-        if (this.currentAnimations.length || this.pendingAnimations.length) {
-            console.log("frame end: " + performance.now());
-        }
 
         requestAnimationFrame(this.frame);
     }

@@ -6,6 +6,7 @@ import { FlipAction, FlipDirection, MoveAction, TIME_FUNCTIONS } from "../../com
 import { Parent, HoldingParent } from "../../common/display.js";
 
 const { linear } = TIME_FUNCTIONS;
+const CARD_MOVE_SPEED = 0.7;
 
 const canvas = document.getElementById("game") as HTMLCanvasElement;
 let ctx = canvas.getContext("2d")!;
@@ -40,15 +41,23 @@ gameClient.table.children.push(gamePiles);
 (window as unknown as {gameClient: GameClient}).gameClient = gameClient;
 
 let currentSelected: Card | null = null;
-let currentMoves: MoveAction<Card>[] = [];
+let currentMoves: Move[] = [];
+
+interface Move {
+    mainAction: MoveAction<Card>,
+    otherActions: MoveAction<Card>[],
+}
 
 gameClient.addClickListener(e => {
     let selectionBlocker = false;
     if (currentSelected && (e.target !== currentSelected || (selectionBlocker ||= e.currentTarget === currentSelected))) {
         if (e.currentTarget instanceof Card) {
             for (let move of currentMoves) {
-                if (e.currentTarget === move.targetContainer.children[move.targetContainer.children.length - 1]) {
-                    gameClient.doAction(move);
+                if (e.currentTarget === move.mainAction.targetContainer.children[move.mainAction.targetContainer.children.length - 1]) {
+                    gameClient.doAction(move.mainAction);
+                    for (let action of move.otherActions) {
+                        gameClient.doAction(action);
+                    }
                     selectionBlocker = true;
                     break;
                 }
@@ -59,7 +68,7 @@ gameClient.addClickListener(e => {
         currentSelected = null;
         if (easy) {
             for (let move of currentMoves) {
-                move.targetContainer.children[move.targetContainer.children.length - 1].glow = null;
+                move.mainAction.targetContainer.children[move.mainAction.targetContainer.children.length - 1].glow = null;
             }
         }
         currentMoves.length = 0;
@@ -82,11 +91,12 @@ gameClient.addClickListener(e => {
                 if (easy) {
                     destCard.glow = "green";
                 }
+                const startCardPile = e.targetStack[1] as CardPile;
                 const action = new MoveAction({
-                    timeFunction: n => n,
+                    timeFunction: linear,
                     // duration: 700,
-                    speed: 0.7,
-                    subjectContainer: e.targetStack[1] as Parent<Card>, 
+                    speed: CARD_MOVE_SPEED,
+                    subjectContainer: startCardPile, 
                     subject: e.currentTarget, 
                     targetContainer: destCardPile, 
                     targetIndex: destCardPile.children.length, 
@@ -94,9 +104,8 @@ gameClient.addClickListener(e => {
                     source: null,
                 });
 
-                const startCardPile = e.targetStack[1] as CardPile;
                 const startFaceDownCards = (e.targetStack[2] as CardPileCombiner).children[0];
-                if (startCardPile.children.length === 1 && startFaceDownCards.children.length !== 0) {
+                if (startCardPile.children.indexOf(e.currentTarget) === 0 && startFaceDownCards.children.length !== 0) {
                     const subject = startFaceDownCards.children[startFaceDownCards.children.length - 1];
                     action.next = new MoveAction({
                         timeFunction: linear,
@@ -119,7 +128,24 @@ gameClient.addClickListener(e => {
                     
                 }
                 // action.next = new Action();
-                currentMoves.push(action)
+                const otherActions = [];
+                for (let i = startCardPile.children.indexOf(e.currentTarget) + 1, j = 1; i < startCardPile.children.length; i++, j++) {
+                    otherActions.push(new MoveAction({
+                        timeFunction: linear,
+                        speed: CARD_MOVE_SPEED,
+                        subjectContainer: startCardPile, 
+                        subject: startCardPile.children[i], 
+                        targetContainer: destCardPile, 
+                        targetIndex: destCardPile.children.length + j, 
+                        skin: gameClient.table.skin, 
+                        source: null,
+                    }))
+                }
+
+                currentMoves.push({
+                    mainAction: action,
+                    otherActions,
+                })
             }
         }
     }

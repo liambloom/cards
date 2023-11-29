@@ -15,10 +15,6 @@ export class Card extends Element {
     }
 
     public override draw(skin: Skin, position: NewPos) {
-        if ((window as unknown as { debugPrint: boolean }).debugPrint) {
-            console.log(`Card drawn @ (${position.x}, ${position.y})`);
-        }
-
         this.latest = position;
         skin.ctx.fillStyle = this.faceUp ? "white" : "darkred";
         if (this.glow) {
@@ -36,10 +32,6 @@ export class Card extends Element {
             skin.ctx.fillText(this.face.value.symbol + this.face.suit.symbol, position.x + 10, position.y + 10);
         }
         this.latestHitbox = new Rectangle(position, skin.cardWidth, skin.cardHeight);
-
-        if ((window as unknown as { debugPrint: boolean }).debugPrint) {
-            console.log("Card drawn end");
-        }
     }
     
     public maybeClick(pos: NewPos, callback: (e: HitBoxEvent) => void, targetStack: Element[]): Element[] | null {

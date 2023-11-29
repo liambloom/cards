@@ -179,7 +179,6 @@ export class MoveAction<T extends Element> extends Action<T> {
     }
 
     public override start(time: number) {
-        console.log("Move started");
         super.start(time);
         this.removeSubjectFromContainer();
     }
@@ -206,7 +205,6 @@ export class MoveAction<T extends Element> extends Action<T> {
                 else {
                     (this.duration as number) = duration;
                 }
-                console.log(this.duration);
             }
         }
 
@@ -214,11 +212,8 @@ export class MoveAction<T extends Element> extends Action<T> {
     }
 
     public override drawProgress(progress: number): void {
-        console.log("Drawing move:" + performance.now());
-        
         this.subject!.draw(this.skin, new NewPos((this.endPos!.x - this.startPos!.x) * progress + this.startPos!.x,
             (this.endPos!.y - this.startPos!.y) * progress + this.startPos!.y));
-        console.log("Move drawn " + performance.now());
     }
 
     public static holdingBufferAction<T extends Element>(data: Omit<BaseActionData<T>, "targetContainer" | "targetIndex" | "timeFunction" | "duration">) {

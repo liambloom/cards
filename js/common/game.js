@@ -121,7 +121,6 @@ export class MoveAction extends Action {
         this.speed = data.speed;
     }
     start(time) {
-        console.log("Move started");
         super.start(time);
         this.removeSubjectFromContainer();
     }
@@ -145,15 +144,12 @@ export class MoveAction extends Action {
                 else {
                     this.duration = duration;
                 }
-                console.log(this.duration);
             }
         }
         super.draw(time);
     }
     drawProgress(progress) {
-        console.log("Drawing move:" + performance.now());
         this.subject.draw(this.skin, new NewPos((this.endPos.x - this.startPos.x) * progress + this.startPos.x, (this.endPos.y - this.startPos.y) * progress + this.startPos.y));
-        console.log("Move drawn " + performance.now());
     }
     static holdingBufferAction(data) {
         return new MoveAction(Object.assign(Object.assign({}, data), { targetContainer: new HoldingParent(data.subject), targetIndex: 0, timeFunction: TIME_FUNCTIONS.linear, duration: 1e-5 }));
