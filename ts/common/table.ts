@@ -25,6 +25,29 @@ export class Table extends Parent<TableLayoutElement> {
         }
     }
 
+    public pathTo(e: Element): Element[] {
+        const r = this.pathToFrom(this, e);
+        if (r === null) {
+            throw new Error("Table does not contain element " + e);
+        }
+        return r;
+    }
+
+    private pathToFrom(from: Parent<Element>, target: Element): Element[] | null {
+        for (let e of from.children) {
+            if (e === target) {
+                return [e];
+            }
+            if (e instanceof Parent) {
+                const recurse = this.pathToFrom(e, target);
+                if (recurse !== null) {
+                    return [...recurse, e];
+                }
+            }
+        }
+        return null;
+    }
+
     public draw(): void {
         super.draw(this.skin, new NewPos(-1, -1));
     }
@@ -33,6 +56,16 @@ export class Table extends Parent<TableLayoutElement> {
 export abstract class TableLayoutElement extends Parent<TableSlotContent> {
     public abstract position: NewPos;
 
+    public override draw(skin: Skin, pos: NewPos): void {
+        if (!pos.equals(this.latestPosition)) {
+            this.childPositions.length = 0;
+        }
+
+        for (let i = 0; i < this.children.length; i++) {
+            this.childPositions[i] ??= this.calculateChildPosition(i, skin);
+            this.children[i]?.draw(skin, this.childPositions[i]);
+        }
+    }
 }
 
 export class TableRow extends TableLayoutElement {

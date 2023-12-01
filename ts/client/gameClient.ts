@@ -2,6 +2,7 @@ import { HitBoxEvent, HoldingParent, NewPos, Skin } from "../common/display.js";
 import { Action, MoveAction } from "../common/game.js";
 import { Table } from "../common/table.js";
 import { Element } from "../common/display.js";
+import { Card } from "../common/cards.js";
 
 export class GameClient {
     private began: boolean = false;
@@ -12,6 +13,8 @@ export class GameClient {
     private readonly pendingAnimations: Action<Element>[] = [];
     private readonly currentAnimations: Action<Element>[]= [];
     private readonly clickListeners: ((e: HitBoxEvent) => void)[] = [];
+    private selectionHandlerInner?: Selector<Element>;
+    private selectionClickListener?: (e: HitBoxEvent) => void;
 
     public constructor(public readonly canvas: HTMLCanvasElement, public readonly ctx: CanvasRenderingContext2D, skin: Skin, width: number, height: number) {
         this.widthVal = width;
@@ -47,6 +50,22 @@ export class GameClient {
     public set height(val: number) {
         this.heightVal = val;
         this.setCanvasSize();
+    }
+
+    public get selectionHandler() {
+        return this.selectionHandlerInner;
+    }
+
+    public set selectionHandler(value: Selector<Element> | undefined) {
+        if (this.selectionHandler) {
+            this.removeClickListener(this.selectionClickListener!);
+            this.selectionHandler.gameClient = undefined;
+        }
+        this.selectionHandlerInner = value;
+        if (value) {
+            this.addClickListener(this.selectionClickListener = value.onClick.bind(value));
+            value.gameClient = this;
+        }
     }
 
     private setCanvasSize() {
@@ -142,4 +161,79 @@ export class GameClient {
             this.clickListeners.splice(i, 1);
         }
     }
+}
+
+export interface Move {
+    trigger: Element, // Element | ((e: HitBoxEvent) => boolean),
+    actions: Action<Element>[],
+}
+
+export interface Selector<T> {
+    onClick(e: HitBoxEvent): void;
+    select(e: T): void;
+    isSelectable(e: Element, location: Element[]): boolean;
+    getLegalMoves(e: T, location: Element[]): Move[];
+    gameClient: GameClient | undefined;
+}
+
+export abstract class SingleCardSelector implements Selector<Card> {
+    private currentSelected: Card | null = null;
+    private currentMoves: Move[] = [];
+    // private showLegalMoves: boolean = false;
+    public gameClient: GameClient | undefined;
+
+    public onClick(e: HitBoxEvent): void {
+        if (!this.gameClient) {
+            throw new Error("Game client undefined");
+        }
+
+        let selectionBlocker = false;
+        if (this.currentSelected && (e.target !== this.currentSelected || (selectionBlocker ||= e.currentTarget === this.currentSelected))) {
+            for (let move of this.currentMoves) {
+                if (e.currentTarget === move.trigger) {
+                    for (let action of move.actions) {
+                        this.gameClient.doAction(action);
+                    }
+                    selectionBlocker = true;
+                    break;
+                }
+            }
+    
+            this.currentSelected.glow = null;
+            this.currentSelected = null;
+            // if (this.showLegalMoves) {
+            //     for (let move of this.currentMoves) {
+            //         move.trigger.glow = null;
+            //     }
+            // }
+            this.currentMoves.length = 0;
+        }
+        if (!selectionBlocker && e.currentTarget instanceof Card && this.isSelectable(e.currentTarget, e.targetStack)) { 
+            this.selectInner(e.currentTarget, e.targetStack);
+        }
+    }
+
+    public select(card: Card) {
+        this.selectInner(card, this.gameClient!.table.pathTo(card));
+    }
+
+    private selectInner(card: Card, location: Element[]) {
+        this.currentSelected = card;
+        card.glow = "cyan";
+
+        this.currentMoves = this.getLegalMoves(card, location);
+        // if (this.showLegalMoves) {
+        //     for (let { trigger } of this.currentMoves) {
+        //         trigger.glow = "green";
+        //     }
+        // }
+    }
+
+    public isSelectable(card: Element, location: Element[]): boolean {
+        return card instanceof Card && this.isCardSelectable(card, location);
+    }
+
+    public abstract isCardSelectable(card: Card, location: Element[]): boolean;
+
+    public abstract getLegalMoves(card: Card, location: Element[]): Move[];
 }

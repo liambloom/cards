@@ -17,6 +17,27 @@ export class Table extends Parent {
             return cardTarget;
         }
     }
+    pathTo(e) {
+        const r = this.pathToFrom(this, e);
+        if (r === null) {
+            throw new Error("Table does not contain element " + e);
+        }
+        return r;
+    }
+    pathToFrom(from, target) {
+        for (let e of from.children) {
+            if (e === target) {
+                return [e];
+            }
+            if (e instanceof Parent) {
+                const recurse = this.pathToFrom(e, target);
+                if (recurse !== null) {
+                    return [...recurse, e];
+                }
+            }
+        }
+        return null;
+    }
     draw() {
         super.draw(this.skin, new NewPos(-1, -1));
     }

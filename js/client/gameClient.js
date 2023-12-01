@@ -1,5 +1,6 @@
 import { NewPos } from "../common/display.js";
 import { Table } from "../common/table.js";
+import { Card } from "../common/cards.js";
 export class GameClient {
     constructor(canvas, ctx, skin, width, height) {
         this.canvas = canvas;
@@ -37,6 +38,20 @@ export class GameClient {
     set height(val) {
         this.heightVal = val;
         this.setCanvasSize();
+    }
+    get selectionHandler() {
+        return this.selectionHandlerInner;
+    }
+    set selectionHandler(value) {
+        if (this.selectionHandler) {
+            this.removeClickListener(this.selectionClickListener);
+            this.selectionHandler.gameClient = undefined;
+        }
+        this.selectionHandlerInner = value;
+        if (value) {
+            this.addClickListener(this.selectionClickListener = value.onClick.bind(value));
+            value.gameClient = this;
+        }
     }
     setCanvasSize() {
         if (this.remove !== undefined) {
@@ -111,5 +126,56 @@ export class GameClient {
         if (i !== -1) {
             this.clickListeners.splice(i, 1);
         }
+    }
+}
+export class SingleCardSelector {
+    constructor() {
+        this.currentSelected = null;
+        this.currentMoves = [];
+    }
+    onClick(e) {
+        console.log("click");
+        if (!this.gameClient) {
+            throw new Error("Game client undefined");
+        }
+        let selectionBlocker = false;
+        if (this.currentSelected && (e.target !== this.currentSelected || (selectionBlocker || (selectionBlocker = e.currentTarget === this.currentSelected)))) {
+            for (let move of this.currentMoves) {
+                if (e.currentTarget === move.trigger) {
+                    for (let action of move.actions) {
+                        this.gameClient.doAction(action);
+                    }
+                    selectionBlocker = true;
+                    break;
+                }
+            }
+            this.currentSelected.glow = null;
+            this.currentSelected = null;
+            // if (this.showLegalMoves) {
+            //     for (let move of this.currentMoves) {
+            //         move.trigger.glow = null;
+            //     }
+            // }
+            this.currentMoves.length = 0;
+        }
+        if (!selectionBlocker && e.currentTarget instanceof Card && this.isSelectable(e.currentTarget, e.targetStack)) {
+            this.selectInner(e.currentTarget, e.targetStack);
+        }
+    }
+    select(card) {
+        this.selectInner(card, this.gameClient.table.pathTo(card));
+    }
+    selectInner(card, location) {
+        this.currentSelected = card;
+        card.glow = "cyan";
+        this.currentMoves = this.getLegalMoves(card, location);
+        // if (this.showLegalMoves) {
+        //     for (let { trigger } of this.currentMoves) {
+        //         trigger.glow = "green";
+        //     }
+        // }
+    }
+    isSelectable(card, location) {
+        return card instanceof Card && this.isCardSelectable(card, location);
     }
 }

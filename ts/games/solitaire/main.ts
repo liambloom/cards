@@ -1,17 +1,15 @@
 import { Card, CardPile, CardPileCombiner, decks } from "../../common/cards.js";
 import cardDisplayInit from "../../client/cardDisplay.js";
 import { Table, TableRow } from "../../common/table.js";
-import { GameClient } from "../../client/gameClient.js";
+import { SingleCardSelector, GameClient, Move } from "../../client/gameClient.js";
 import { FlipAction, FlipDirection, MoveAction, TIME_FUNCTIONS } from "../../common/game.js";
-import { Parent, HoldingParent } from "../../common/display.js";
+import { Parent, HoldingParent, Element } from "../../common/display.js";
 
 const { linear } = TIME_FUNCTIONS;
 const CARD_MOVE_SPEED = 0.7;
 
 const canvas = document.getElementById("game") as HTMLCanvasElement;
 let ctx = canvas.getContext("2d")!;
-
-// TODO: Fix card movement. Currently only moves one card, even if it has cards on top of it
 
 const { baseSkin: skin } = cardDisplayInit(ctx);
 const easy = new URLSearchParams(location.search).get("easyMode") === "true" ? true : false;
@@ -40,43 +38,9 @@ gameClient.table.children.push(gamePiles);
 // For easy debugging
 (window as unknown as {gameClient: GameClient}).gameClient = gameClient;
 
-let currentSelected: Card | null = null;
-let currentMoves: Move[] = [];
-
-interface Move {
-    mainAction: MoveAction<Card>,
-    otherActions: MoveAction<Card>[],
-}
-
-gameClient.addClickListener(e => {
-    let selectionBlocker = false;
-    if (currentSelected && (e.target !== currentSelected || (selectionBlocker ||= e.currentTarget === currentSelected))) {
-        if (e.currentTarget instanceof Card) {
-            for (let move of currentMoves) {
-                if (e.currentTarget === move.mainAction.targetContainer.children[move.mainAction.targetContainer.children.length - 1]) {
-                    gameClient.doAction(move.mainAction);
-                    for (let action of move.otherActions) {
-                        gameClient.doAction(action);
-                    }
-                    selectionBlocker = true;
-                    break;
-                }
-            }
-        }
-
-        currentSelected.glow = null;
-        currentSelected = null;
-        if (easy) {
-            for (let move of currentMoves) {
-                move.mainAction.targetContainer.children[move.mainAction.targetContainer.children.length - 1].glow = null;
-            }
-        }
-        currentMoves.length = 0;
-    }
-    if (!selectionBlocker && e.currentTarget instanceof Card && e.currentTarget.faceUp) {
-        currentSelected = e.currentTarget;
-        currentSelected.glow = "cyan";
-
+gameClient.selectionHandler = new class extends SingleCardSelector {
+    public override getLegalMoves(card: Card, location: Element[]): Move[] {
+        const r = [];
         for (let pileContainer of gamePiles.children) {
             const destPileCombiner = pileContainer as CardPileCombiner;
             const destCardPile = destPileCombiner.children[1];
@@ -88,24 +52,22 @@ gameClient.addClickListener(e => {
             const destCard = destCardPile.children[destCardPile.children.length - 1];
 
             if (destCard.faceUp /*&& destCard.face.value.value === e.currentTarget.face.value.value + 1 && destCard.face.suit.color !== e.currentTarget.face.suit.color*/) {
-                if (easy) {
-                    destCard.glow = "green";
-                }
-                const startCardPile = e.targetStack[1] as CardPile;
+                const startCardPile = location[1] as CardPile;
+                const actions = [];
                 const action = new MoveAction({
                     timeFunction: linear,
-                    // duration: 700,
                     speed: CARD_MOVE_SPEED,
                     subjectContainer: startCardPile, 
-                    subject: e.currentTarget, 
+                    subject: card, 
                     targetContainer: destCardPile, 
                     targetIndex: destCardPile.children.length, 
                     skin: gameClient.table.skin, 
                     source: null,
                 });
+                actions.push(action);
 
-                const startFaceDownCards = (e.targetStack[2] as CardPileCombiner).children[0];
-                if (startCardPile.children.indexOf(e.currentTarget) === 0 && startFaceDownCards.children.length !== 0) {
+                const startFaceDownCards = (location[2] as CardPileCombiner).children[0];
+                if (startCardPile.children.indexOf(card) === 0 && startFaceDownCards.children.length !== 0) {
                     const subject = startFaceDownCards.children[startFaceDownCards.children.length - 1];
                     action.next = new MoveAction({
                         timeFunction: linear,
@@ -127,10 +89,8 @@ gameClient.addClickListener(e => {
                     })});
                     
                 }
-                // action.next = new Action();
-                const otherActions = [];
-                for (let i = startCardPile.children.indexOf(e.currentTarget) + 1, j = 1; i < startCardPile.children.length; i++, j++) {
-                    otherActions.push(new MoveAction({
+                for (let i = startCardPile.children.indexOf(card) + 1, j = 1; i < startCardPile.children.length; i++, j++) {
+                    actions.push(new MoveAction({
                         timeFunction: linear,
                         speed: CARD_MOVE_SPEED,
                         subjectContainer: startCardPile, 
@@ -142,14 +102,15 @@ gameClient.addClickListener(e => {
                     }))
                 }
 
-                currentMoves.push({
-                    mainAction: action,
-                    otherActions,
-                })
+                r.push({actions, trigger: destCard});
             }
         }
+        return r;
     }
-    selectionBlocker = false;
-});
+
+    public override isCardSelectable(card: Card): boolean {
+        return card.faceUp;
+    }
+}
 
 gameClient.begin();
