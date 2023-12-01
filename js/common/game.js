@@ -9,6 +9,7 @@ export class Player {
 }
 export class Action {
     constructor(data) {
+        this.latestProgress = 0;
         this.subject = data.subject;
         this.subjectContainer = data.subjectContainer;
         this.source = data.source;

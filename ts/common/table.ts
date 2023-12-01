@@ -30,7 +30,7 @@ export class Table extends Parent<TableLayoutElement> {
     }
 }
 
-export abstract class TableLayoutElement extends Parent<TableSlot> {
+export abstract class TableLayoutElement extends Parent<TableSlotContent> {
     public abstract position: NewPos;
 
 }
@@ -53,7 +53,7 @@ export class TableRow extends TableLayoutElement {
     }
 }
 
-export type TableSlotContent = Card | CardPile | CardPileCombiner | null;
+export type TableSlotContent = Card | CardPile | CardPileCombiner;// | null;
 
 // Position is private, and everything else that gets displayed gets displayed
 //  by being on the table, and its position is controlled, eventually, by the TableSlot.
@@ -63,33 +63,32 @@ export type TableSlotContent = Card | CardPile | CardPileCombiner | null;
 //
 // Q: Is there a way to make positions package-private?
 //   
-export class TableSlot extends Element {
-    private contentVal!: TableSlotContent;
+// export class TableSlot extends Element {
+//     private contentVal!: TableSlotContent;
 
-    public constructor(
-        content: TableSlotContent = null,
-    ) {
-        super();
+//     public constructor(
+//         content: TableSlotContent = null,
+//     ) {
+//         super();
 
-        this.content = content;
-    }
+//         this.content = content;
+//     }
 
-    public get content() {
-        return this.contentVal;
-    }
+//     public get content() {
+//         return this.contentVal;
+//     }
 
-    public set content(value: TableSlotContent) {
-        this.contentVal = value;
-    }
-
+//     public set content(value: TableSlotContent) {
+//         this.contentVal = value;
+//     }
     
-    public override maybeClick(pos: NewPos, callback: (e: HitBoxEvent) => void, targetStack: Element[]): Element[] | null {
-        return this.contentVal?.maybeClick(pos, callback, targetStack) ?? null;
-    }
+//     public override maybeClick(pos: NewPos, callback: (e: HitBoxEvent) => void, targetStack: Element[]): Element[] | null {
+//         return this.contentVal?.maybeClick(pos, callback, targetStack) ?? null;
+//     }
 
-    public override draw(skin: Skin, pos: NewPos): void {
-        if (this.content !== null) {
-            this.content.draw(skin, pos);
-        }
-    }
-}
+//     public override draw(skin: Skin, pos: NewPos): void {
+//         if (this.content !== null) {
+//             this.content.draw(skin, pos);
+//         }
+//     }
+// }

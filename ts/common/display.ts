@@ -101,11 +101,8 @@ export abstract class Parent<C extends Element> extends Element {
         this.latest = pos;
 
         for (let i = 0; i < this.children.length; i++) {
-            if (this.childPositions[i] === undefined) {
-                this.childPositions[i] = this.calculateChildPosition(i, skin);
-            }
-
-            this.children[i].draw(skin, this.childPositions[i]);
+            this.childPositions[i] ??= this.calculateChildPosition(i, skin);
+            this.children[i]?.draw(skin, this.childPositions[i]);
         }
     }
 

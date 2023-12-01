@@ -33,6 +33,7 @@ export abstract class Action<T extends Element> implements BaseActionData<T> {
     public readonly duration: number;
     public readonly timeFunction: (time: number) => number;
     private startTime?: number;
+    private latestProgress: number = 0;
 
     public constructor(data: BaseActionData<T>) {
         this.subject = data.subject;

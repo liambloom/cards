@@ -1,4 +1,4 @@
-import { NewPos, Parent, Element, HitBoxEvent } from "./display.js";
+import { NewPos, Parent, HitBoxEvent } from "./display.js";
 export class Table extends Parent {
     constructor(children = [], skin) {
         super(children);
@@ -48,24 +48,26 @@ export class TableRow extends TableLayoutElement {
 //
 // Q: Is there a way to make positions package-private?
 //   
-export class TableSlot extends Element {
-    constructor(content = null) {
-        super();
-        this.content = content;
-    }
-    get content() {
-        return this.contentVal;
-    }
-    set content(value) {
-        this.contentVal = value;
-    }
-    maybeClick(pos, callback, targetStack) {
-        var _a, _b;
-        return (_b = (_a = this.contentVal) === null || _a === void 0 ? void 0 : _a.maybeClick(pos, callback, targetStack)) !== null && _b !== void 0 ? _b : null;
-    }
-    draw(skin, pos) {
-        if (this.content !== null) {
-            this.content.draw(skin, pos);
-        }
-    }
-}
+// export class TableSlot extends Element {
+//     private contentVal!: TableSlotContent;
+//     public constructor(
+//         content: TableSlotContent = null,
+//     ) {
+//         super();
+//         this.content = content;
+//     }
+//     public get content() {
+//         return this.contentVal;
+//     }
+//     public set content(value: TableSlotContent) {
+//         this.contentVal = value;
+//     }
+//     public override maybeClick(pos: NewPos, callback: (e: HitBoxEvent) => void, targetStack: Element[]): Element[] | null {
+//         return this.contentVal?.maybeClick(pos, callback, targetStack) ?? null;
+//     }
+//     public override draw(skin: Skin, pos: NewPos): void {
+//         if (this.content !== null) {
+//             this.content.draw(skin, pos);
+//         }
+//     }
+// }

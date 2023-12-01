@@ -1,6 +1,6 @@
 import { Card, CardPile, CardPileCombiner, decks } from "../../common/cards.js";
 import cardDisplayInit from "../../client/cardDisplay.js";
-import { TableRow, TableSlot } from "../../common/table.js";
+import { TableRow } from "../../common/table.js";
 import { GameClient } from "../../client/gameClient.js";
 import { FlipAction, FlipDirection, MoveAction, TIME_FUNCTIONS } from "../../common/game.js";
 const { linear } = TIME_FUNCTIONS;
@@ -21,7 +21,7 @@ for (let i = 0; i < 7; i++) {
         new CardPile(deck.children.splice(deck.children.length - i, i), skin.minValueVisibleHeight, Math.PI / 2),
         new CardPile([topCard], Math.min(skin.minValueVisibleHeight * 2, skin.cardHeight), Math.PI / 2)
     ]);
-    gamePiles.children.push(new TableSlot(combiner));
+    gamePiles.children.push(combiner);
 }
 const gameClient = new GameClient(canvas, ctx, skin, 1000, 1000);
 gameClient.table.children.push(gamePiles);
@@ -53,11 +53,11 @@ gameClient.addClickListener(e => {
         }
         currentMoves.length = 0;
     }
-    if (!selectionBlocker && e.currentTarget instanceof Card) {
+    if (!selectionBlocker && e.currentTarget instanceof Card && e.currentTarget.faceUp) {
         currentSelected = e.currentTarget;
         currentSelected.glow = "cyan";
         for (let pileContainer of gamePiles.children) {
-            const destPileCombiner = pileContainer.content;
+            const destPileCombiner = pileContainer;
             const destCardPile = destPileCombiner.children[1];
             if (destCardPile.children.length === 0) {
                 continue;

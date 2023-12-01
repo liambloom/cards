@@ -65,15 +65,15 @@ export class Parent extends Element {
         return true;
     }
     draw(skin, pos) {
+        var _a, _b;
+        var _c;
         if (!pos.equals(this.latestPosition)) {
             this.childPositions.length = 0;
         }
         this.latest = pos;
         for (let i = 0; i < this.children.length; i++) {
-            if (this.childPositions[i] === undefined) {
-                this.childPositions[i] = this.calculateChildPosition(i, skin);
-            }
-            this.children[i].draw(skin, this.childPositions[i]);
+            (_a = (_c = this.childPositions)[i]) !== null && _a !== void 0 ? _a : (_c[i] = this.calculateChildPosition(i, skin));
+            (_b = this.children[i]) === null || _b === void 0 ? void 0 : _b.draw(skin, this.childPositions[i]);
         }
     }
     maybeClick(pos, callback, targetStack) {
